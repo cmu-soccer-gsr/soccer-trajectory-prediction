@@ -218,3 +218,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---- project specific ----
+data/
+outputs/
+checkpoints/
+wandb/
+*.mp4
+*.mkv
+*.pth
+*.pt
+*.ckpt
+*.zip
+.env
+.DS_Store

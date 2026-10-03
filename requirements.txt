@@ -1,0 +1,15 @@
+# Core
+torch
+torchvision
+numpy
+opencv-python
+pyyaml
+tqdm
+pandas
+matplotlib
+
+# SoccerNet data + GSR evaluation
+SoccerNet
+
+# Experiment tracking (optional)
+wandb
