@@ -232,3 +232,11 @@ wandb/
 *.zip
 .env
 .DS_Store
+
+data/
+**/.venv/
+**/outputs/
+**/states/
+**/pretrained_models/
+*.pklz
+*.mp4
