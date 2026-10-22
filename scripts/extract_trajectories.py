@@ -97,8 +97,21 @@ def parse_labels(labels: dict, split: str, sequence: str, roles: set) -> list[di
     return rows
 
 
-def iter_label_files(split_zip: Path):
-    """Yield (sequence_name, labels_dict) for every Labels-GameState.json in a zip."""
+def iter_label_files_s3(s3_zip: str):
+    """
+    Same as iter_label_files but reads a zip that lives on S3 without downloading it.
+    zipfile only seeks to the central directory and the label JSON entries, so only a
+    small fraction of the (multi-GB) zip is actually transferred. Needs `pip install s3fs`.
+    """
+    import s3fs
+
+    fs = s3fs.S3FileSystem()
+    with fs.open(s3_zip, "rb", block_size=8 * 1024 * 1024) as f:
+        yield from iter_label_files(f)
+
+
+def iter_label_files(split_zip):
+    """Yield (sequence_name, labels_dict) for every Labels-GameState.json in a zip (path or file object)."""
     with zipfile.ZipFile(split_zip) as zf:
         members = sorted(m for m in zf.namelist() if m.endswith("Labels-GameState.json"))
         for m in members:
@@ -181,8 +194,9 @@ def gap_summary(raw: pd.DataFrame, seg: pd.DataFrame, max_gap: int, min_len: int
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data-dir", required=True, type=Path,
-                    help="Folder containing train.zip/valid.zip/... (or extracted split folders)")
+    ap.add_argument("--data-dir", required=True,
+                    help="Folder containing train.zip/valid.zip/... (or extracted split folders). "
+                         "Can also be an S3 prefix, e.g. s3://cmu-soccer-gsr-data/SoccerNetGS/gamestate-2024")
     ap.add_argument("--out-dir", required=True, type=Path)
     ap.add_argument("--splits", nargs="+", default=["train", "valid", "test"])
     ap.add_argument("--roles", nargs="+", default=DEFAULT_ROLES)
@@ -194,14 +208,20 @@ def main():
     ap.add_argument("--fps", type=int, default=25)
     args = ap.parse_args()
 
-    data_dir = args.data_dir.expanduser()
+    on_s3 = args.data_dir.startswith("s3://")
     out_dir = args.out_dir.expanduser()
     out_dir.mkdir(parents=True, exist_ok=True)
     roles = set(args.roles)
 
     for split in args.splits:
-        split_zip, split_dir = data_dir / f"{split}.zip", data_dir / split
-        if split_dir.is_dir():
+        if on_s3:
+            source = iter_label_files_s3(f"{args.data_dir.rstrip('/')}/{split}.zip")
+        else:
+            data_dir = Path(args.data_dir).expanduser()
+            split_zip, split_dir = data_dir / f"{split}.zip", data_dir / split
+        if on_s3:
+            pass
+        elif split_dir.is_dir():
             source = iter_label_files_dir(split_dir)
         elif split_zip.exists():
             source = iter_label_files(split_zip)
