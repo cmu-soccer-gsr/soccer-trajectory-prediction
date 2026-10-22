@@ -13,3 +13,4 @@ SoccerNet
 
 # Experiment tracking (optional)
 wandb
+s3fs
