@@ -1,0 +1,646 @@
+<meta charset="utf-8">
+<title>GSR Clip Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: broadcast-truck console. Video + minimap on top, track timeline as a full-width strip,
+   then the gap lab and the test-set results. One accent (pitch green); team and method colors are data. */
+:root {
+  --bg: #f3f5f1; --surface: #ffffff; --surface-2: #e9ede7; --ink: #141917; --muted: #59625d; --line: #d3d9d1;
+  --accent: #0f7f55; --accent-ink: #ffffff;
+  --pitch: #2d6844; --pitch-line: rgba(255,255,255,.78); --pitch-grid: rgba(255,255,255,.12);
+  --left: #2a78d6; --right: #e0612b; --ref: #c48600; --dot: #ffffff;
+  --m-linear: #868c88; --m-spline: #14a06e; --m-kalman: #e0612b; --m-gru: #2a78d6; --truth: #141917;
+  --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1211; --surface: #161b1a; --surface-2: #1d2422; --ink: #edf1ee; --muted: #9aa49f; --line: #29322f;
+  --accent: #33c58b; --accent-ink: #06130d;
+  --pitch: #1d4a31; --pitch-line: rgba(255,255,255,.7); --pitch-grid: rgba(255,255,255,.08);
+  --left: #4b94ec; --right: #f07a4a; --ref: #e3aa2c; --dot: #f2f2f2;
+  --m-linear: #9aa09c; --m-spline: #2fc58a; --m-kalman: #f07a4a; --m-gru: #4b94ec; --truth: #ffffff;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0e1211; --surface: #161b1a; --surface-2: #1d2422; --ink: #edf1ee; --muted: #9aa49f; --line: #29322f;
+  --accent: #33c58b; --accent-ink: #06130d;
+  --pitch: #1d4a31; --pitch-line: rgba(255,255,255,.7); --pitch-grid: rgba(255,255,255,.08);
+  --left: #4b94ec; --right: #f07a4a; --ref: #e3aa2c; --dot: #f2f2f2;
+  --m-linear: #9aa09c; --m-spline: #2fc58a; --m-kalman: #f07a4a; --m-gru: #4b94ec; --truth: #ffffff;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px; }
+.wrap { max-width: 1440px; margin: 0 auto; display: grid; gap: 20px; }
+h1, h2 { font-family: var(--display); font-weight: 700; letter-spacing: .01em; text-wrap: balance; margin: 0; line-height: 1.05; }
+h1 { font-size: clamp(30px, 4vw, 44px); }
+h2 { font-size: 26px; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag { font: 500 12px/1 var(--mono); padding: 7px 10px; border-radius: 999px; background: var(--surface-2); color: var(--ink); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; margin-bottom: 12px; }
+
+.grid-top { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 20px; }
+.video-wrap { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; }
+.video-wrap video, .video-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.video-wrap canvas { cursor: pointer; }
+.vmsg { position: absolute; inset: 0; display: grid; place-items: center; color: #ddd; font: 14px var(--mono); padding: 16px; text-align: center; }
+
+.controls { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px 14px; margin-top: 12px; }
+.controls .row2 { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+button, select { font: 500 14px var(--body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+label.chk { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.fc-row { padding-top: 10px; border-top: 1px solid var(--line); }
+.fc-label { font: 500 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.probs { display: grid; gap: 6px; }
+.prob { display: grid; grid-template-columns: 74px 1fr 44px; align-items: center; gap: 8px; font-size: 13px; }
+.prob .bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.prob .bar i { display: block; height: 100%; border-radius: 4px; }
+
+#mini { width: 100%; aspect-ratio: 112 / 75; display: block; border-radius: 8px; cursor: pointer; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.sw.sq { border-radius: 2px; }
+.sw.ln { width: 18px; height: 3px; border-radius: 2px; vertical-align: 3px; }
+.card { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.kv div { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; }
+.kv b { display: block; font: 600 20px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.kv span { font-size: 12px; color: var(--muted); }
+
+#tl { width: 100%; display: block; cursor: pointer; }
+
+.grid-lab { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+#zoom { width: 100%; aspect-ratio: 1 / 1; max-height: 560px; display: block; border-radius: 8px; }
+.lab-side { display: grid; gap: 14px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+th { font: 500 12px var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+td.r, th.r { text-align: right; }
+tr.best td { font-weight: 600; }
+.pill { font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); margin-left: 6px; vertical-align: 1px; }
+.status { font: 600 13px var(--mono); padding: 6px 10px; border-radius: 8px; background: var(--surface-2); display: inline-block; }
+.status.gap { background: var(--ink); color: var(--bg); }
+.note { font-size: 13px; color: var(--muted); max-width: 70ch; }
+.tablewrap { overflow-x: auto; }
+.grid-res { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+#chart { width: 100%; height: auto; display: block; }
+footer { font-size: 13px; color: var(--muted); }
+
+@media (max-width: 980px) {
+  .grid-top, .grid-lab, .grid-res { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">SoccerNet Game State Reconstruction · CMU 11-785 Group 15</div>
+      <h1>GSR Clip Explorer</h1>
+    </div>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <section class="grid-top">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Broadcast</h2>
+        <span class="muted" style="font-size:13px">Click a box to select a player</span>
+      </div>
+      <div class="video-wrap">
+        <video id="vid" src="broadcast.mp4" muted playsinline preload="auto"></video>
+        <canvas id="ov" tabindex="0" aria-label="Labeled boxes over the broadcast frame"></canvas>
+        <div class="vmsg" id="vmsg">Loading video…</div>
+      </div>
+      <div class="controls">
+        <button id="play" class="primary" aria-label="Play">Play</button>
+        <input id="scrub" type="range" min="0" max="749" value="0" step="1" aria-label="Frame">
+        <span class="num" id="clock">0.00 s · 1/750</span>
+        <div class="row2">
+          <button id="back" aria-label="Previous frame">◀ 1 frame</button>
+          <button id="fwd" aria-label="Next frame">1 frame ▶</button>
+          <label class="chk" for="speed">Speed
+            <select id="speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select>
+          </label>
+          <label class="chk" for="tBoxes"><input id="tBoxes" type="checkbox" checked> Boxes</label>
+          <label class="chk" for="tLines"><input id="tLines" type="checkbox" checked> Pitch lines</label>
+          <label class="chk" for="tLabels"><input id="tLabels" type="checkbox" checked> Numbers</label>
+        </div>
+        <div class="row2 fc-row">
+          <span class="fc-label">Predicted next 1 s</span>
+          <div class="seg" role="group" aria-label="Show predicted paths">
+            <button id="fOff" aria-pressed="false">Off</button>
+            <button id="fBall" aria-pressed="true">Ball carrier</button>
+            <button id="fSel" aria-pressed="false">Selected player</button>
+            <button id="fAll" aria-pressed="false">All players</button>
+          </div>
+          <label class="chk" for="tActual"><input id="tActual" type="checkbox"> Show what actually happened</label>
+        </div>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <div class="panel-head">
+        <h2>Minimap</h2>
+        <span class="muted num" style="font-size:13px">105 × 68 m · 2 s trails</span>
+      </div>
+      <canvas id="mini" tabindex="0" aria-label="Players on the pitch"></canvas>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--left)"></i>Left team</span>
+        <span><i class="sw" style="background:var(--right)"></i>Right team</span>
+        <span><i class="sw" style="background:var(--ref)"></i>Referee</span>
+        <span><i class="sw sq" style="background:var(--muted)"></i>Goalkeeper</span>
+        <span><i class="sw" style="background:#fff;outline:1.5px solid #111"></i>Ball</span>
+        <span><i class="sw ln" style="background:var(--ink)"></i>Predicted paths (thicker = more likely)</span>
+        <span><i class="sw ln" style="background:repeating-linear-gradient(90deg,var(--ink) 0 4px,transparent 4px 7px)"></i>What happened</span>
+      </div>
+      <div class="card" id="card"></div>
+    </aside>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Track timeline</h2>
+      <span class="note">Each bar is a stretch where the player is labeled on screen; the thin dark line inside marks when they have the ball. Breaks are players leaving the camera view or going unlabeled. Click to jump in time and to select a player.</span>
+    </div>
+    <canvas id="tl" tabindex="0" aria-label="Track timeline"></canvas>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow">Trajectory imputation</div>
+        <h2>Gap lab</h2>
+      </div>
+      <div class="seg" role="group" aria-label="Observed positions">
+        <button id="cClean" aria-pressed="false">Clean labels</button>
+        <button id="cNoisy" aria-pressed="true">Noisy context (σ = 0.25 m)</button>
+      </div>
+    </div>
+    <div class="grid-lab">
+      <canvas id="zoom" aria-label="Zoomed view of the hidden second"></canvas>
+      <div class="lab-side">
+        <div><span class="status" id="lstatus">–</span></div>
+        <p class="note" id="lwhere" style="margin:0"></p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <button id="playGap" class="primary">Play this gap at 0.5×</button>
+          <button id="prevWin">◀ Earlier window</button>
+          <button id="nextWin">Later window ▶</button>
+          <label class="chk" for="tTruth"><input id="tTruth" type="checkbox" checked> Show ground truth</label>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Method</th><th class="r">Mean error</th><th class="r">Max error</th><th class="r">Test avg.</th></tr></thead>
+            <tbody id="ltable"></tbody>
+          </table>
+        </div>
+        <p class="note">The middle 1 s (25 frames) of a 3 s window is hidden and each method fills it from the frames around it. Errors are measured against the clean labels. With noisy context, Gaussian noise is added to the observed frames, as in the report's noisy-context experiment. Test avg. is the mean over 5,556 test windows at all gap lengths.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow">Test split · 5,556 windows</div>
+        <h2>Error by gap length</h2>
+      </div>
+      <span class="note">Mean displacement over hidden frames, in cm, with 95% confidence intervals. Follows the condition chosen in the gap lab.</span>
+    </div>
+    <div class="grid-res">
+      <div class="tablewrap"><table id="rtable"></table></div>
+      <svg id="chart" viewBox="0 0 560 330" role="img" aria-label="Error versus gap length"></svg>
+    </div>
+  </section>
+
+  <footer>Ground truth: SoccerNet-GSR labels (v1.3), clip <span id="fname"></span>. Imputation models from the midterm report: linear interpolation, penalized cubic spline, constant-velocity Kalman smoother, and a bidirectional GRU. Code: github.com/cmu-soccer-gsr/soccer-trajectory-prediction</footer>
+</div>
+
+<script>
+(() => {
+const $ = (id) => document.getElementById(id);
+const FPS = 25;
+const METHOD_LABEL = { linear: "Linear", spline: "Cubic spline", kalman: "Kalman (CV + RTS)", gru: "BiGRU (ours)" };
+const S = { f: 0, sel: null, cond: "noisy", win: null, gapPlay: null, playing: false,
+  boxes: true, lines: true, labels: true, truth: true, fc: "ball", actual: false };
+let ballPos = [], carrier = [];
+let C, I, R, F = null, tok = {};
+let trackPos = {}, order = [], runs = {}, winsByTrack = {};
+
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ["bg","surface","surface-2","ink","muted","line","accent","pitch","pitch-line","pitch-grid","left","right","ref","dot",
+                   "m-linear","m-spline","m-kalman","m-gru","truth"]) tok[k] = cs.getPropertyValue("--" + k).trim();
+}
+const colorOf = (t) => { const m = C.tracks[t]; if (!m) return tok.muted;
+  return m.role === "referee" ? tok.ref : m.team === "left" ? tok.left : m.team === "right" ? tok.right : tok.muted; };
+const labelOf = (t) => { const m = C.tracks[t]; if (!m) return "";
+  if (m.role === "referee") return "R"; if (m.role === "goalkeeper") return "GK" + (m.jersey || ""); return m.jersey || ""; };
+const nameOf = (t) => { const m = C.tracks[t]; if (!m) return "–";
+  if (m.role === "referee") return "Referee"; const side = m.team ? (m.team === "left" ? "Left" : "Right") + " team" : "";
+  const role = m.role === "goalkeeper" ? "goalkeeper" : "player";
+  return (m.jersey ? "#" + m.jersey + " · " : "No. not labeled · ") + side + " " + role; };
+
+function fitCanvas(cv) {
+  const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  const w = Math.max(1, Math.round(r.width * d)), h = Math.max(1, Math.round(r.height * d));
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  const ctx = cv.getContext("2d"); ctx.setTransform(d, 0, 0, d, 0, 0);
+  return [ctx, r.width, r.height];
+}
+function chip(ctx, x, y, text, bg) {
+  ctx.font = "600 11px 'IBM Plex Mono', monospace";
+  const w = ctx.measureText(text).width + 8;
+  ctx.fillStyle = bg; roundRect(ctx, x - w / 2, y - 15, w, 15, 3); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.fillText(text, x, y - 4);
+}
+function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+/* ---------------- data prep ---------------- */
+function prep() {
+  C.frames.forEach((fs, f) => fs.forEach(([t, , , , , x, y]) => {
+    if (x === null) return; (trackPos[t] ||= new Map()).set(f, [x, y]); }));
+  const rank = (t) => { const m = C.tracks[t];
+    return [m.team === "left" ? 0 : m.team === "right" ? 1 : 2, m.role === "referee" ? 1 : 0, /^\d+$/.test(m.jersey || "") ? +m.jersey : 99]; };
+  order = Object.keys(C.tracks).map(Number).filter((t) => C.tracks[t].role !== "ball")
+    .sort((a, b) => { const A = rank(a), B = rank(b); for (let i = 0; i < 3; i++) if (A[i] !== B[i]) return A[i] - B[i]; return a - b; });
+  const present = {}; order.forEach((t) => present[t] = new Uint8Array(C.n));
+  C.frames.forEach((fs, f) => fs.forEach(([t]) => { if (present[t]) present[t][f] = 1; }));
+  for (const t of order) { const r = []; let s = -1;
+    for (let f = 0; f <= C.n; f++) { const on = f < C.n && present[t][f];
+      if (on && s < 0) s = f; if (!on && s >= 0) { r.push([s, f]); s = -1; } } runs[t] = r; }
+  // ball carrier: nearest player within 1.5 m of the ball; keep the current carrier while within 2.5 m
+  let cur = null;
+  for (let f = 0; f < C.n; f++) {
+    let b = null; for (const [t, , , , , x, y] of C.frames[f]) if (C.tracks[t].role === "ball" && x !== null) b = [x, y];
+    ballPos[f] = b; let best = null, bd = 1.5;
+    if (b) { for (const [t, , , , , x, y] of C.frames[f]) { const m = C.tracks[t]; if (x === null || !(m.role === "player" || m.role === "goalkeeper")) continue;
+        const d = Math.hypot(x - b[0], y - b[1]); if (t === cur && d < 2.5) { best = t; bd = -1; break; } if (d < bd) { bd = d; best = t; } } }
+    carrier[f] = cur = best;
+  }
+  I.windows.forEach((w, i) => (winsByTrack[w.t] ||= []).push(i));
+  for (const t in winsByTrack) winsByTrack[t].sort((a, b) => I.windows[a].f0 - I.windows[b].f0);
+}
+
+/* ---------------- video ---------------- */
+const vid = $("vid");
+function frameFromVideo() { return Math.max(0, Math.min(C.n - 1, Math.floor(vid.currentTime * FPS + 1e-4))); }
+function seek(f) { f = Math.max(0, Math.min(C.n - 1, f)); vid.currentTime = (f + 0.5) / FPS; setFrame(f); }
+function setFrame(f) {
+  if (f === S.f && S._drawn) return; S.f = f; S._drawn = true;
+  $("scrub").value = f; $("clock").textContent = (f / FPS).toFixed(2) + " s · " + (f + 1) + "/" + C.n;
+  if (S.gapPlay && f >= S.gapPlay.f0 + I.window - 1) endGapPlay();
+  if (!S.gapPlay) pickWindow(false);
+  drawAll();
+}
+function tick() { if (vid.readyState >= 2 && !$("vmsg").hidden) $("vmsg").hidden = true; if (!vid.paused) setFrame(frameFromVideo()); requestAnimationFrame(tick); }
+vid.addEventListener("loadeddata", () => { $("vmsg").hidden = true; seek(S.f); });
+vid.addEventListener("error", () => { $("vmsg").textContent = "The video could not be loaded. Boxes, minimap and timeline still work with the scrubber."; });
+vid.addEventListener("seeked", () => setFrame(frameFromVideo()));
+vid.addEventListener("play", () => { S.playing = true; $("play").textContent = "Pause"; });
+vid.addEventListener("pause", () => { S.playing = false; $("play").textContent = "Play"; });
+vid.addEventListener("ended", () => { S.playing = false; $("play").textContent = "Play"; });
+$("play").onclick = () => { if (vid.paused) { if (S.f >= C.n - 1) seek(0); vid.play().catch(() => {}); } else vid.pause(); };
+$("scrub").oninput = (e) => { vid.pause(); S.gapPlay = null; seek(+e.target.value); };
+$("back").onclick = () => { vid.pause(); seek(S.f - 1); };
+$("fwd").onclick = () => { vid.pause(); seek(S.f + 1); };
+$("speed").onchange = (e) => { if (!S.gapPlay) vid.playbackRate = +e.target.value; };
+const FC_BTNS = [["fOff", "off"], ["fBall", "ball"], ["fSel", "sel"], ["fAll", "all"]];
+function setFc(v) { S.fc = v; for (const [j, w] of FC_BTNS) $(j).setAttribute("aria-pressed", w === v); drawAll(); }
+for (const [id, v] of FC_BTNS) $(id).onclick = () => setFc(v);
+for (const [id, k] of [["tBoxes", "boxes"], ["tLines", "lines"], ["tLabels", "labels"], ["tTruth", "truth"], ["tActual", "actual"]])
+  $(id).onchange = (e) => { S[k] = e.target.checked; drawAll(); };
+
+/* ---------------- forecasts ---------------- */
+function forecastsAt(f) {
+  if (!F) return null; const k = f - ((f - (F.past - 1)) % F.every + F.every) % F.every;
+  return k >= F.past - 1 ? { k, list: F.frames[k] || [] } : null;
+}
+function fcFor(t, f) { const r = forecastsAt(f); if (!r) return null; const e = r.list.find((x) => x[0] === t); if (!e) return null;
+  const o = trackPos[t] && trackPos[t].get(r.k); if (!o) return null;
+  const modes = e.slice(2).map((arr, i) => ({ p: e[1][i] / 100, pts: [o].concat(Array.from({ length: arr.length / 2 }, (_, j) => [o[0] + arr[2 * j] / 100, o[1] + arr[2 * j + 1] / 100])) }));
+  modes.sort((a, b) => b.p - a.p);
+  const actual = []; for (let j = 0; j <= F.future; j += F.step) { const q = trackPos[t].get(r.k + j); if (!q) break; actual.push(q); }
+  return { k: r.k, modes, actual: actual.length === F.future / F.step + 1 ? actual : null };
+}
+function focusPlayer(f = S.f) { return S.fc === "ball" ? carrier[f] : S.sel; }
+function showFc(t) { return S.fc === "all" || ((S.fc === "sel" || S.fc === "ball") && t === focusPlayer()); }
+function homo(f) { const h = F && F.homography[f]; if (!h) return null;
+  return (x, y) => { const w = h[6] * x + h[7] * y + 1; return [(h[0] * x + h[1] * y + h[2]) / w, (h[3] * x + h[4] * y + h[5]) / w]; }; }
+function drawPaths(ctx, fc, map, col, emph) {
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  if (S.actual && fc.actual) { ctx.setLineDash([5, 5]); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = emph ? 2.5 : 1.5; ctx.beginPath();
+    fc.actual.forEach((p, i) => { const [X, Y] = map(p); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); ctx.setLineDash([]); }
+  fc.modes.forEach((m, i) => {
+    ctx.globalAlpha = Math.max(.3, Math.min(1, m.p * 1.6)); ctx.strokeStyle = col; ctx.lineWidth = (emph ? 2 : 1.2) + m.p * (emph ? 5 : 3);
+    ctx.beginPath(); m.pts.forEach((p, j) => { const [X, Y] = map(p); j ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke();
+    const [ex, ey] = map(m.pts[m.pts.length - 1]); const [px, py] = map(m.pts[m.pts.length - 2]);
+    const ang = Math.atan2(ey - py, ex - px), L = emph ? 9 : 6; ctx.fillStyle = col; ctx.beginPath();
+    ctx.moveTo(ex, ey); ctx.lineTo(ex - L * Math.cos(ang - .45), ey - L * Math.sin(ang - .45)); ctx.lineTo(ex - L * Math.cos(ang + .45), ey - L * Math.sin(ang + .45)); ctx.closePath(); ctx.fill();
+    if (emph && i === 0) { ctx.globalAlpha = 1; ctx.font = "600 11px 'IBM Plex Mono', monospace"; ctx.textAlign = "left";
+      ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.6)"; const s = Math.round(m.p * 100) + "%"; ctx.strokeText(s, ex + 6, ey - 4); ctx.fillStyle = "#fff"; ctx.fillText(s, ex + 6, ey - 4); }
+  });
+  ctx.globalAlpha = 1;
+}
+
+/* ---------------- broadcast overlay ---------------- */
+function drawOverlay() {
+  const [ctx, w, h] = fitCanvas($("ov")); ctx.clearRect(0, 0, w, h);
+  const sx = w / C.width, sy = h / C.height, f = S.f;
+  if (S.lines && C.lines[f]) {
+    ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 1;
+    for (const p of C.lines[f]) { ctx.beginPath(); for (let i = 0; i < p.length; i += 2) {
+      const X = p[i] * w, Y = p[i + 1] * h; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); } ctx.stroke(); }
+  }
+  if (!S.boxes) { drawVideoForecasts(ctx, sx, sy); return; }
+  const hideT = S.gapPlay && inGap(S.gapPlay, f) ? S.gapPlay.t : null;
+  for (const [t, bx, by, bw, bh] of C.frames[f]) {
+    const m = C.tracks[t]; if (!m || m.role === "ball") continue;
+    const x = bx * sx, y = by * sy, ww = bw * sx, hh = bh * sy;
+    if (t === hideT) { ctx.setLineDash([5, 4]); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.strokeRect(x, y, ww, hh); ctx.setLineDash([]);
+      chip(ctx, x + ww / 2, y + hh + 17, "hidden", "rgba(40,40,40,.85)"); continue; }
+    if (t === S.sel) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.strokeRect(x - 3, y - 3, ww + 6, hh + 6); }
+    ctx.strokeStyle = colorOf(t); ctx.lineWidth = 2; ctx.strokeRect(x, y, ww, hh);
+    if (S.labels && labelOf(t)) chip(ctx, x + ww / 2, y - 2, labelOf(t), colorOf(t));
+  }
+  for (const [t, bx, by, bw, bh] of C.frames[f]) if (C.tracks[t].role === "ball") {
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc((bx + bw / 2) * sx, (by + bh / 2) * sy, Math.max(6, bw * sx * .9), 0, 7); ctx.stroke(); }
+  const cb = carrier[f];
+  if (cb != null) for (const [t, bx, by, bw, bh] of C.frames[f]) if (t === cb) chip(ctx, (bx + bw / 2) * sx, (by + bh) * sy + 17, "ball", "rgba(20,20,20,.85)");
+  drawVideoForecasts(ctx, sx, sy);
+}
+function drawVideoForecasts(ctx, sx, sy) {
+  if (S.fc === "off" || S.gapPlay) return; const H = homo(S.f); if (!H) return;
+  const map = (p) => { const [u, v] = H(p[0], p[1]); return [u * sx, v * sy]; };
+  for (const [t] of C.frames[S.f]) { if (!showFc(t)) continue; const fc = fcFor(t, S.f); if (fc) drawPaths(ctx, fc, map, colorOf(t), t === focusPlayer()); }
+}
+$("ov").addEventListener("click", (e) => {
+  const r = e.currentTarget.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * C.width, y = (e.clientY - r.top) / r.height * C.height;
+  let best = null, area = 1e9;
+  for (const [t, bx, by, bw, bh] of C.frames[S.f]) if (x >= bx - 6 && x <= bx + bw + 6 && y >= by - 6 && y <= by + bh + 6 && bw * bh < area) { best = t; area = bw * bh; }
+  if (best !== null) select(best);
+});
+
+/* ---------------- minimap ---------------- */
+function pitchGeom(w, h) { const pad = 14, s = Math.min((w - 2 * pad) / 105, (h - 2 * pad) / 68);
+  const ox = (w - 105 * s) / 2, oy = (h - 68 * s) / 2; return { s, P: (x, y) => [ox + (x + 52.5) * s, oy + (y + 34) * s] }; }
+function drawPitch(ctx, w, h, g) {
+  ctx.fillStyle = tok.pitch; roundRect(ctx, 0, 0, w, h, 8); ctx.fill();
+  ctx.strokeStyle = tok["pitch-line"]; ctx.lineWidth = 1.2; const { P, s } = g;
+  const L = (a, b, c, d) => { ctx.beginPath(); ctx.moveTo(...P(a, b)); ctx.lineTo(...P(c, d)); ctx.stroke(); };
+  const [x0, y0] = P(-52.5, -34); ctx.strokeRect(x0, y0, 105 * s, 68 * s); L(0, -34, 0, 34);
+  ctx.beginPath(); ctx.arc(...P(0, 0), 9.15 * s, 0, 7); ctx.stroke();
+  for (const sg of [-1, 1]) { const gx = 52.5 * sg;
+    for (const [d, hw] of [[16.5, 20.16], [5.5, 9.16]]) { const ix = gx - sg * d; L(gx, -hw, ix, -hw); L(ix, -hw, ix, hw); L(ix, hw, gx, hw); }
+    ctx.fillStyle = tok["pitch-line"]; ctx.beginPath(); ctx.arc(...P(gx - sg * 11, 0), 1.6, 0, 7); ctx.fill(); }
+}
+function drawMini() {
+  const [ctx, w, h] = fitCanvas($("mini")); const g = pitchGeom(w, h); drawPitch(ctx, w, h, g);
+  const f = S.f;
+  for (const [t] of C.frames[f]) { const tp = trackPos[t]; if (!tp || !tp.has(f)) continue;
+    ctx.beginPath(); let first = true;
+    for (let k = Math.max(0, f - 50); k <= f; k++) { const p = tp.get(k); if (!p) { first = true; continue; }
+      const [X, Y] = g.P(p[0], p[1]); first ? ctx.moveTo(X, Y) : ctx.lineTo(X, Y); first = false; }
+    ctx.strokeStyle = colorOf(t); ctx.globalAlpha = .55; ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1; }
+  if (S.fc !== "off") for (const [t] of C.frames[f]) { if (!showFc(t)) continue; const fc = fcFor(t, f);
+    if (fc) drawPaths(ctx, fc, (p) => g.P(p[0], p[1]), colorOf(t), t === focusPlayer()); }
+  for (const [t, , , , , x, y] of C.frames[f]) {
+    if (x === null || C.tracks[t].role === "ball") continue;
+    const [X, Y] = g.P(x, y); ctx.fillStyle = colorOf(t);
+    if (C.tracks[t].role === "goalkeeper") { ctx.fillRect(X - 5, Y - 5, 10, 10); } else { ctx.beginPath(); ctx.arc(X, Y, 5.5, 0, 7); ctx.fill(); }
+    if (t === S.sel) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X, Y, 10, 0, 7); ctx.stroke(); }
+    if (S.labels && labelOf(t)) chip(ctx, X, Y - 7, labelOf(t), colorOf(t));
+  }
+  if (ballPos[f]) { const [X, Y] = g.P(...ballPos[f]); ctx.fillStyle = "#fff"; ctx.strokeStyle = "#111"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(X, Y, 4, 0, 7); ctx.fill(); ctx.stroke(); }
+  if (S.win) { const w0 = I.windows[S.win]; const pts = winGT(w0); const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    const [a, b] = g.P(Math.min(...xs) - 1, Math.min(...ys) - 1), [c, d] = g.P(Math.max(...xs) + 1, Math.max(...ys) + 1);
+    ctx.setLineDash([4, 3]); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(a, b, c - a, d - b); ctx.setLineDash([]); }
+}
+$("mini").addEventListener("click", (e) => {
+  const cv = e.currentTarget, r = cv.getBoundingClientRect(), g = pitchGeom(r.width, r.height);
+  const px = e.clientX - r.left, py = e.clientY - r.top; let best = null, bd = 18;
+  for (const [t, , , , , x, y] of C.frames[S.f]) { if (x === null) continue; const [X, Y] = g.P(x, y); const d = Math.hypot(X - px, Y - py); if (d < bd) { bd = d; best = t; } }
+  if (best !== null) select(best);
+});
+
+/* ---------------- selection card ---------------- */
+function select(t) { S.sel = t; S.gapPlay = null; pickWindow(true); if (S.fc === "ball" || S.fc === "off") setFc("sel"); else drawAll(); }
+function drawCard() {
+  const el = $("card"), ballMode = S.fc === "ball", t = ballMode ? carrier[S.f] : S.sel;
+  if (ballMode && t == null) { el.innerHTML = '<div class="eyebrow">Ball carrier</div><span class="muted">No player has the ball right now (a pass in flight or a loose ball). Play on, or click a player to follow them instead.</span>'; return; }
+  if (t === null) { el.innerHTML = '<span class="muted">Select a player on the video, minimap or timeline.</span>'; return; }
+  const r = runs[t] || [], frames = r.reduce((a, [s, e]) => a + e - s, 0);
+  const gaps = Math.max(0, r.length - 1), on = trackPos[t] && trackPos[t].has(S.f);
+  el.innerHTML = (ballMode ? '<div class="eyebrow">Ball carrier · follows the ball</div>' : '<div class="eyebrow">Selected player · <button id="followBall" style="padding:2px 8px;font-size:12px">Follow the ball instead</button></div>') +
+    `<div style="display:flex;align-items:center;gap:8px"><i class="sw" style="background:${colorOf(t)}"></i>
+    <b>${nameOf(t)}</b><span class="muted num" style="margin-left:auto;font-size:12px">track ${t}</span></div>
+    <div class="kv"><div><b>${(frames / FPS).toFixed(1)} s</b><span>labeled on screen</span></div>
+    <div><b>${gaps}</b><span>gaps in the track</span></div>
+    <div><b>${on ? "yes" : "no"}</b><span>on screen now</span></div></div>` + fcCard(t);
+  const fb = $("followBall"); if (fb) fb.onclick = () => setFc("ball");
+}
+function fcCard(t) {
+  if (!F) return "";
+  const fc = fcFor(t, S.f);
+  if (!fc) return `<p class="note" style="margin:0">No prediction at this moment: the player needs 2 s of continuous history on screen.</p>`;
+  const names = ["Most likely", "2nd path", "3rd path"];
+  let err = "";
+  if (fc.actual) { const a = fc.actual[fc.actual.length - 1], e = fc.modes[0].pts[fc.modes[0].pts.length - 1];
+    const best = Math.min(...fc.modes.map((m) => { const q = m.pts[m.pts.length - 1]; return Math.hypot(q[0] - a[0], q[1] - a[1]); }));
+    err = `<p class="note" style="margin:0">After 1 s the player was ${Math.hypot(e[0] - a[0], e[1] - a[1]).toFixed(1)} m from the most likely path's end point (closest of the three: ${best.toFixed(1)} m).</p>`; }
+  return `<div class="eyebrow" style="margin-top:4px">Predicted next 1 s · from ${(fc.k / FPS).toFixed(2)} s</div><div class="probs">` +
+    fc.modes.map((m, i) => `<div class="prob"><span>${names[i]}</span><span class="bar"><i style="width:${Math.round(m.p * 100)}%;background:${colorOf(t)};opacity:${Math.max(.35, Math.min(1, m.p * 1.6))}"></i></span><span class="num" style="text-align:right">${Math.round(m.p * 100)}%</span></div>`).join("") +
+    `</div>${err}<p class="note" style="margin:0">Predicted from this player's own last 2 s of movement. The model does not see the ball or other players yet.</p>`;
+}
+
+/* ---------------- timeline ---------------- */
+const TL = { left: 46, top: 18, row: 13 };
+function drawTimeline() {
+  const cv = $("tl"); cv.style.height = (TL.top + order.length * TL.row + 26) + "px";
+  const [ctx, w, h] = fitCanvas(cv); ctx.clearRect(0, 0, w, h);
+  const x = (f) => TL.left + (w - TL.left - 8) * f / C.n, f = S.f;
+  ctx.font = "500 11px 'IBM Plex Mono', monospace"; ctx.textBaseline = "middle";
+  order.forEach((t, i) => { const y = TL.top + i * TL.row;
+    if (t === S.sel) { ctx.fillStyle = tok["surface-2"]; ctx.fillRect(0, y - 1, w, TL.row); }
+    ctx.fillStyle = colorOf(t); ctx.textAlign = "right"; ctx.fillText(labelOf(t) || "–", TL.left - 8, y + TL.row / 2);
+    for (const [s, e] of runs[t]) { ctx.globalAlpha = s <= f ? 1 : .35; ctx.fillRect(x(s), y + 2, Math.max(1, x(e) - x(s)), TL.row - 4); }
+    ctx.globalAlpha = 1; ctx.fillStyle = tok.ink;
+    for (let k = 0; k < C.n; k++) if (carrier[k] === t) { let e = k; while (e < C.n && carrier[e] === t) e++; ctx.fillRect(x(k), y + TL.row / 2 - 1.5, Math.max(1, x(e) - x(k)), 3); k = e - 1; }
+    ctx.fillStyle = colorOf(t); });
+  if (S.win !== null) { const w0 = I.windows[S.win], i = order.indexOf(w0.t), y = TL.top + i * TL.row;
+    const a = x(w0.f0 + I.gapStart), b = x(w0.f0 + I.gapStart + I.gap);
+    ctx.strokeStyle = tok.ink; ctx.lineWidth = 2; ctx.strokeRect(a, y, b - a, TL.row - 1); }
+  ctx.fillStyle = tok.muted; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (let s = 0; s <= C.n / FPS; s += 5) ctx.fillText(s + " s", x(s * FPS), TL.top + order.length * TL.row + 8);
+  ctx.strokeStyle = tok.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x(f), 4); ctx.lineTo(x(f), TL.top + order.length * TL.row + 2); ctx.stroke();
+}
+$("tl").addEventListener("click", (e) => {
+  const r = e.currentTarget.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  const i = Math.floor((py - TL.top) / TL.row);
+  if (i >= 0 && i < order.length) S.sel = order[i];
+  vid.pause(); S.gapPlay = null;
+  if (px >= TL.left) seek(Math.round((px - TL.left) / (r.width - TL.left - 8) * C.n)); else { pickWindow(true); drawAll(); }
+});
+
+/* ---------------- gap lab ---------------- */
+const inGap = (w, f) => f >= w.f0 + I.gapStart && f < w.f0 + I.gapStart + I.gap;
+function winGT(w) { const tp = trackPos[w.t], out = []; for (let k = 0; k < I.window; k++) out.push(tp.get(w.f0 + k)); return out; }
+function pickWindow(force) {
+  const list = winsByTrack[S.sel]; if (!list || !list.length) { S.win = null; return; }
+  let best = list[0], bd = 1e9;
+  for (const i of list) { const c = I.windows[i].f0 + I.gapStart + I.gap / 2, d = Math.abs(c - S.f); if (d < bd) { bd = d; best = i; } }
+  if (force || best !== S.win) S.win = best;
+}
+function stepWindow(dir) { const list = winsByTrack[S.sel]; if (!list) return; const k = list.indexOf(S.win);
+  const n = list[Math.max(0, Math.min(list.length - 1, k + dir * 3))]; if (n === undefined) return;
+  vid.pause(); S.gapPlay = null; S.win = n; seek(I.windows[n].f0 + I.gapStart + 12); S.win = n; drawAll(); }
+$("prevWin").onclick = () => stepWindow(-1); $("nextWin").onclick = () => stepWindow(1);
+$("playGap").onclick = () => { if (S.win === null) return; const w = I.windows[S.win];
+  S.gapPlay = w; vid.playbackRate = 0.5; vid.currentTime = (w.f0 + 0.5) / FPS; setFrame(w.f0); vid.play().catch(() => {}); };
+function endGapPlay() { vid.pause(); vid.playbackRate = +$("speed").value; S.gapPlay = null; }
+$("cClean").onclick = () => setCond("clean"); $("cNoisy").onclick = () => setCond("noisy");
+function setCond(c) { S.cond = c; $("cClean").setAttribute("aria-pressed", c === "clean"); $("cNoisy").setAttribute("aria-pressed", c === "noisy"); drawAll(); }
+
+function winData(w) {
+  const gt = winGT(w), noisy = S.cond === "noisy";
+  const obs = gt.map((p, k) => noisy ? [p[0] + w.noise[2 * k] / 100, p[1] + w.noise[2 * k + 1] / 100] : p);
+  const preds = {}, errs = {};
+  for (const m of I.methods) { const off = w.p[S.cond][m], pts = [], e = [];
+    for (let j = 0; j < I.gap; j++) { const g = gt[I.gapStart + j], dx = off[2 * j] / 100, dy = off[2 * j + 1] / 100;
+      pts.push([g[0] + dx, g[1] + dy]); e.push(Math.hypot(dx, dy)); }
+    preds[m] = pts; errs[m] = { mean: e.reduce((a, b) => a + b, 0) / e.length, max: Math.max(...e) }; }
+  return { gt, obs, preds, errs };
+}
+function drawLab() {
+  const [ctx, w, h] = fitCanvas($("zoom")); ctx.clearRect(0, 0, w, h);
+  const tb = $("ltable"), st = $("lstatus"), where = $("lwhere");
+  if (S.sel === null || S.win === null) {
+    ctx.fillStyle = tok.pitch; roundRect(ctx, 0, 0, w, h, 8); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "500 14px 'IBM Plex Sans', sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(S.sel === null ? "Select a player to test a gap." : "This player has no fully observed 3 s stretch.", w / 2, h / 2);
+    tb.innerHTML = ""; st.textContent = "No window"; st.className = "status"; where.textContent = ""; return; }
+  const win = I.windows[S.win], D = winData(win), gs = I.gapStart, ge = gs + I.gap;
+  const ctxIdx = []; for (let k = Math.max(0, gs - 12); k < Math.min(I.window, ge + 12); k++) ctxIdx.push(k);
+  const pts = ctxIdx.map((k) => D.gt[k]).concat(ctxIdx.filter((k) => k < gs || k >= ge).map((k) => D.obs[k]));
+  for (const m in D.preds) pts.push(...D.preds[m]);
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const half = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / 2 + .5;
+  const s = Math.min(w, h) / (2 * half), ox = w / 2, oy = h / 2;
+  const Z = (p) => [ox + (p[0] - cx) * s, oy + (p[1] - cy) * s];
+  ctx.fillStyle = tok.pitch; roundRect(ctx, 0, 0, w, h, 8); ctx.fill();
+  ctx.strokeStyle = tok["pitch-grid"]; ctx.lineWidth = 1;
+  for (let g = Math.ceil(cx - half * w / Math.min(w, h)); g < cx + half * w / Math.min(w, h); g++) { const [X] = Z([g, 0]); ctx.beginPath(); ctx.moveTo(X, 0); ctx.lineTo(X, h); ctx.stroke(); }
+  for (let g = Math.ceil(cy - half * h / Math.min(w, h)); g < cy + half * h / Math.min(w, h); g++) { const [, Y] = Z([0, g]); ctx.beginPath(); ctx.moveTo(0, Y); ctx.lineTo(w, Y); ctx.stroke(); }
+  // context dots: faint for the whole window, solid near the gap
+  for (let k = 0; k < I.window; k++) { if (k >= gs && k < ge) continue; const [X, Y] = Z(D.obs[k]);
+    ctx.globalAlpha = ctxIdx.includes(k) ? 1 : .3; ctx.fillStyle = tok.dot; ctx.beginPath(); ctx.arc(X, Y, 4, 0, 7); ctx.fill(); }
+  ctx.globalAlpha = 1;
+  const line = (arr, col, lw) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineJoin = "round"; ctx.beginPath();
+    arr.forEach((p, i) => { const [X, Y] = Z(p); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); };
+  if (S.truth) line(D.gt.slice(gs - 1, ge + 1), "#ffffff", 5);
+  for (const m of I.methods) line([D.obs[gs - 1], ...D.preds[m], D.obs[ge]], tok["m-" + m], 2.5);
+  const kf = S.f - win.f0;
+  if (kf >= gs && kf < ge) { for (const m of I.methods) { const [X, Y] = Z(D.preds[m][kf - gs]); ctx.fillStyle = tok["m-" + m]; ctx.beginPath(); ctx.arc(X, Y, 5, 0, 7); ctx.fill(); }
+    if (S.truth) { const [X, Y] = Z(D.gt[kf]); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X, Y, 8, 0, 7); ctx.stroke(); } }
+  ctx.fillStyle = "rgba(255,255,255,.75)"; ctx.font = "500 12px 'IBM Plex Mono', monospace"; ctx.textAlign = "left";
+  ctx.fillText("grid = 1 m", 10, h - 10);
+  // status + table
+  const t0 = (win.f0 + gs) / FPS;
+  if (kf >= gs && kf < ge) { st.textContent = "Inside the hidden second"; st.className = "status gap"; }
+  else { st.textContent = kf < 0 || kf >= I.window ? "Playhead outside this window" : kf < gs ? "Before the gap" : "After the gap"; st.className = "status"; }
+  where.textContent = `${nameOf(win.t)}: positions from ${t0.toFixed(2)} s to ${(t0 + I.gap / FPS).toFixed(2)} s are hidden. ` +
+    `Window ${(winsByTrack[win.t].indexOf(S.win) + 1)} of ${winsByTrack[win.t].length} for this player (steps of 0.2 s).`;
+  const testAvg = (m) => { const r = R.filter((x) => x.method === m && x.noise === (S.cond === "noisy" ? I.sigma : 0)); return r.length ? r.reduce((a, b) => a + b.ade_cm, 0) / r.length : NaN; };
+  const best = I.methods.reduce((a, b) => D.errs[a].mean <= D.errs[b].mean ? a : b);
+  tb.innerHTML = I.methods.map((m) => `<tr class="${m === best ? "best" : ""}"><td><i class="sw ln" style="background:var(--m-${m})"></i>${METHOD_LABEL[m]}${m === best ? '<span class="pill">best here</span>' : ""}</td>
+    <td class="r num">${(D.errs[m].mean * 100).toFixed(1)} cm</td><td class="r num">${(D.errs[m].max * 100).toFixed(1)} cm</td>
+    <td class="r num muted">${testAvg(m).toFixed(1)} cm</td></tr>`).join("") +
+    (S.truth ? `<tr><td colspan="4" class="muted" style="font-size:13px"><i class="sw ln" style="background:var(--truth);outline:1px solid var(--line)"></i>White line: ground truth. Dots: observed positions${S.cond === "noisy" ? " with noise" : ""}.</td></tr>` : "");
+}
+
+/* ---------------- results ---------------- */
+function drawResults() {
+  const noise = S.cond === "noisy" ? I.sigma : 0, rows = R.filter((r) => r.noise === noise);
+  const gaps = [...new Set(rows.map((r) => r.gap_s))].sort((a, b) => a - b);
+  const methods = I.methods.filter((m) => rows.some((r) => r.method === m));
+  const val = (m, g) => rows.find((r) => r.method === m && r.gap_s === g);
+  const mean = (m) => gaps.reduce((a, g) => a + val(m, g).ade_cm, 0) / gaps.length;
+  const bestCol = (g) => methods.reduce((a, b) => val(a, g).ade_cm <= val(b, g).ade_cm ? a : b);
+  const bestMean = methods.reduce((a, b) => mean(a) <= mean(b) ? a : b);
+  $("rtable").innerHTML = `<thead><tr><th>${S.cond === "noisy" ? "Noisy context" : "Clean labels"}</th>${gaps.map((g) => `<th class="r">${g} s</th>`).join("")}<th class="r">Mean</th></tr></thead><tbody>` +
+    methods.map((m) => `<tr><td><i class="sw ln" style="background:var(--m-${m})"></i>${METHOD_LABEL[m]}</td>${gaps.map((g) => { const v = val(m, g);
+      return `<td class="r num" style="${bestCol(g) === m ? "font-weight:600" : ""}">${v.ade_cm.toFixed(1)}</td>`; }).join("")}
+      <td class="r num" style="${bestMean === m ? "font-weight:600" : ""}">${mean(m).toFixed(1)}</td></tr>`).join("") + "</tbody>";
+  // chart
+  const W = 560, H = 330, L = 50, Rr = 120, T = 16, B = 40;
+  const ymax = Math.ceil(Math.max(...rows.map((r) => r.ade_cm + r.ci_cm)) / 5) * 5;
+  const X = (g) => L + (g - gaps[0]) / (gaps[gaps.length - 1] - gaps[0]) * (W - L - Rr), Y = (v) => T + (1 - v / ymax) * (H - T - B);
+  let svg = "";
+  const step = ymax <= 10 ? 2 : ymax <= 25 ? 5 : 10;
+  for (let v = 0; v <= ymax; v += step) svg += `<line x1="${L}" x2="${W - Rr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="11">${v}</text>`;
+  for (const g of gaps) svg += `<text x="${X(g)}" y="${H - B + 18}" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="11">${g} s</text>`;
+  svg += `<text x="${L}" y="${H - 6}" fill="var(--muted)" font-family="IBM Plex Sans, sans-serif" font-size="12">Gap length</text>`;
+  svg += `<text x="12" y="${T + 4}" fill="var(--muted)" font-family="IBM Plex Sans, sans-serif" font-size="12" transform="rotate(-90 12 ${T + 4})" text-anchor="end">cm</text>`;
+  const ends = [];
+  for (const m of methods) { const c = `var(--m-${m})`, pts = gaps.map((g) => val(m, g));
+    const up = pts.map((p, i) => `${X(gaps[i])},${Y(p.ade_cm + p.ci_cm)}`), dn = pts.map((p, i) => `${X(gaps[i])},${Y(Math.max(0, p.ade_cm - p.ci_cm))}`).reverse();
+    svg += `<polygon points="${up.concat(dn).join(" ")}" fill="${c}" fill-opacity=".15" stroke="none"/>`;
+    svg += `<polyline points="${pts.map((p, i) => `${X(gaps[i])},${Y(p.ade_cm)}`).join(" ")}" fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    pts.forEach((p, i) => svg += `<circle cx="${X(gaps[i])}" cy="${Y(p.ade_cm)}" r="4" fill="${c}"><title>${METHOD_LABEL[m]} · ${gaps[i]} s · ${p.ade_cm.toFixed(1)} cm ± ${p.ci_cm.toFixed(1)}</title></circle>`);
+    ends.push([m, Y(pts[pts.length - 1].ade_cm)]); }
+  ends.sort((a, b) => a[1] - b[1]); for (let i = 1; i < ends.length; i++) if (ends[i][1] - ends[i - 1][1] < 15) ends[i][1] = ends[i - 1][1] + 15;
+  for (const [m, y] of ends) svg += `<text x="${W - Rr + 10}" y="${y + 4}" fill="var(--ink)" font-family="IBM Plex Sans, sans-serif" font-size="12">${METHOD_LABEL[m]}</text>`;
+  $("chart").innerHTML = svg;
+}
+
+function drawAll() { readTokens(); drawOverlay(); drawMini(); drawCard(); drawTimeline(); drawLab(); drawResults(); }
+
+/* ---------------- boot ---------------- */
+Promise.all(["clip.json", "impute.json", "results.json"].map((u) => fetch(u).then((r) => { if (!r.ok) throw new Error(u); return r.json(); }))
+  .concat(fetch("forecast.json").then((r) => r.ok ? r.json() : null).catch(() => null)))
+  .then(([c, i, r, fcst]) => {
+    C = c; I = i; R = r; F = fcst; prep();
+    $("scrub").max = C.n - 1;
+    const inf = C.info;
+    $("meta").innerHTML = [inf.name, inf.action_class, "Game time " + inf.game_time_start, "Labels v" + inf.version, C.n + " frames · 25 fps"].map((s) => `<span class="tag">${s}</span>`).join("");
+    $("fname").textContent = inf.name;
+    // open on player #14 crossing #19, the same moment as the demo video
+    // open on a moment where someone has the ball and a prediction exists, as close as possible to 26.9 s
+    let start = 672;
+    for (let d = 0; d < C.n; d++) { const hit = [672 - d, 672 + d].find((f) => f >= 0 && f < C.n && carrier[f] != null && fcFor(carrier[f], f));
+      if (hit !== undefined) { start = hit; break; } }
+    S.sel = C.tracks[3] ? 3 : order[0]; S.f = start; pickWindow(true);
+    S._drawn = false; setFrame(start);
+    if (vid.readyState >= 2) { $("vmsg").hidden = true; seek(start); }
+    requestAnimationFrame(tick);
+  })
+  .catch((e) => { document.querySelector(".wrap").insertAdjacentHTML("afterbegin", `<div class="panel">Data files could not be loaded (${e.message}).</div>`); });
+window.addEventListener("resize", () => C && drawAll());
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => C && drawAll());
+new MutationObserver(() => C && drawAll()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+})();
+</script>
