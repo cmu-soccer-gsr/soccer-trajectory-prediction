@@ -1,0 +1,294 @@
+<meta charset="utf-8">
+<title>GSR Jersey Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Atkinson+Hyperlegible:wght@400;700&family=Overpass+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: the kit man's wall. Same tactics-board world as the Live Board and Clip Explorer:
+   headline numbers first, then why the reader fails, then the actual crops it has to read. */
+:root {
+  --bg: #f6f7f8; --surface: #ffffff; --surface-2: #e9edf0; --ink: #15191d; --muted: #59626b; --line: #d3d9df;
+  --accent: #15191d; --accent-ink: #ffffff;
+  --left: #1d5bbf; --right: #cc3626;
+  --b-ok: #17895a; --b-null: #1d5bbf; --b-out: #b06f00; --b-never: #7b4fc4; --bar: 29, 91, 191;
+  --display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Overpass Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #131917; --surface: #19211e; --surface-2: #232d29; --ink: #edf0ea; --muted: #9ea8a2; --line: #2f3a35;
+  --accent: #edf0ea; --accent-ink: #131917; --left: #6fa3f2; --right: #f2806b;
+  --b-ok: #2fa874; --b-null: #4f8be0; --b-out: #b8890f; --b-never: #9a76e0; --bar: 111, 163, 242;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #131917; --surface: #19211e; --surface-2: #232d29; --ink: #edf0ea; --muted: #9ea8a2; --line: #2f3a35;
+  --accent: #edf0ea; --accent-ink: #131917; --left: #6fa3f2; --right: #f2806b;
+  --b-ok: #2fa874; --b-null: #4f8be0; --b-out: #b8890f; --b-never: #9a76e0; --bar: 111, 163, 242;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--body); margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 48px; }
+.wrap { max-width: 1440px; margin: 0 auto; display: grid; gap: 44px; }
+.wrap > *, header.top > *, .strip > span { min-width: 0; }
+h1, h2 { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: .02em; margin: 0; line-height: 1; text-wrap: balance; }
+h1 { font-size: clamp(38px, 5vw, 60px); }
+h2 { font-size: 30px; }
+h3 { font: 800 20px/1.05 var(--display); text-transform: uppercase; letter-spacing: .03em; margin: 0; }
+.sub { font-size: 14px; color: var(--muted); }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.note { font-size: 14px; color: var(--muted); max-width: 68ch; margin: 0; }
+header.top { display: flex; flex-wrap: wrap; align-items: stretch; justify-content: space-between; gap: 14px 28px; padding-bottom: 16px; border-bottom: 3px solid var(--ink); }
+header.top .ttl { display: grid; gap: 6px; align-content: end; }
+.strip { display: flex; flex-wrap: wrap; font-family: var(--mono); font-size: 13px; }
+.strip > span { display: grid; gap: 2px; padding: 4px 14px; border-left: 1px solid var(--line); }
+.strip > span:first-child { border-left: 0; padding-left: 0; }
+.strip small { color: var(--muted); font-size: 12px; }
+.strip b { font: 800 24px/1 var(--display); letter-spacing: .03em; text-transform: uppercase; }
+.sec-head { display: grid; gap: 6px; margin-bottom: 16px; }
+.two { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+.two > * { min-width: 0; }
+svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart { position: relative; display: grid; gap: 8px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 3px; padding: 6px 9px; font: 500 13px/1.45 var(--mono); color: var(--ink); box-shadow: 0 2px 10px rgba(0,0,0,.12); white-space: nowrap; z-index: 2; }
+.facts { display: grid; gap: 0; border-top: 3px solid var(--ink); }
+.facts div { display: grid; grid-template-columns: 96px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+.facts b { font: 600 22px/1.1 var(--mono); }
+.stack { display: flex; height: 34px; border-radius: 3px; overflow: hidden; gap: 2px; background: var(--bg); }
+.stack i { display: block; height: 100%; position: relative; }
+.stack i span { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font: 600 13px var(--mono); color: #fff; white-space: nowrap; }
+.keys { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; color: var(--muted); }
+.sw { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.sw.ln { width: 18px; height: 3px; vertical-align: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { padding: 8px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { font: 700 13px var(--body); color: var(--muted); border-bottom: 1.5px solid var(--ink); }
+td.r, th.r { text-align: right; }
+.tablewrap { overflow-x: auto; min-width: 0; }
+.seg { display: inline-flex; border: 1.5px solid var(--ink); border-radius: 4px; overflow: hidden; }
+.seg button { font: 700 14px var(--body); color: var(--ink); background: transparent; border: 0; border-left: 1.5px solid var(--ink); padding: 6px 12px; cursor: pointer; }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+button:focus-visible { outline: 2px solid var(--left); outline-offset: 2px; }
+.gal-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 10px 20px; margin-bottom: 14px; }
+.gallery { display: grid; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+.grow { display: grid; grid-template-columns: 150px auto; gap: 12px; align-items: end; min-width: max-content; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.gname { display: grid; gap: 2px; align-self: center; }
+.gname b { font-size: 15px; }
+.gname span { font-size: 13px; color: var(--muted); }
+.shirt { display: inline-grid; place-items: center; min-width: 28px; height: 26px; padding: 0 5px; border-radius: 4px; color: #fff; font: 600 13px var(--mono); margin-right: 6px; }
+.shirt.none { background: transparent !important; color: var(--muted); outline: 1.5px dashed var(--muted); font-size: 11px; }
+.crops { display: flex; gap: 4px; align-items: flex-end; }
+.crop { display: grid; gap: 2px; justify-items: center; }
+.crop i { display: block; background-repeat: no-repeat; border-radius: 2px; image-rendering: auto; }
+.crop small { font: 500 11px var(--mono); color: var(--muted); }
+.fix { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 3px solid var(--ink); }
+.fix div { padding: 12px 16px 12px 0; display: grid; gap: 6px; align-content: start; }
+.fix div + div { padding-left: 16px; border-left: 1px solid var(--line); }
+.fix b { font-size: 16px; }
+footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+@media (max-width: 980px) { .two, .fix { grid-template-columns: minmax(0, 1fr); } .fix div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); } }
+@media (max-width: 520px) { .strip > span { padding: 4px 10px; } .grow { grid-template-columns: 110px auto; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="ttl">
+      <div class="sub">Jersey number recognition in SoccerNet GSR, CMU 11-785 Group 15</div>
+      <h1>GSR Jersey Board</h1>
+    </div>
+    <div class="strip">
+      <span><small>Reader</small><b>MMOCR baseline</b></span>
+      <span><small>Tracklets right</small><b class="num" style="font-family:var(--display)">11.3%</b></span>
+      <span><small>GS-HOTA</small><b class="num" style="font-family:var(--display)">18.85</b></span>
+      <span><small>Validation clips</small><b>58</b></span>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head">
+      <h2>What jersey numbers are worth</h2>
+      <p class="note">GS-HOTA on all 58 validation clips. Only the jersey column changes between these runs: detection, tracking, calibration and teams are the same cached baseline state.</p>
+    </div>
+    <div class="two">
+      <div class="chart" id="cWorth"><svg id="worth" viewBox="0 0 640 190" role="img" aria-label="GS-HOTA with no jerseys, the MMOCR baseline, and oracle jerseys"></svg></div>
+      <div class="facts">
+        <div><b>+5.71</b><span>GS-HOTA that MMOCR adds over reading no numbers at all.</span></div>
+        <div><b>+10.46</b><span>More that perfect numbers per tracklet would add. That is the room a better reader has.</span></div>
+        <div><b>35%</b><span>Share of the possible jersey gain the baseline already gets.</span></div>
+        <div><b>−0.20</b><span>Per-frame oracle vs per-tracklet oracle. Assigning numbers per tracklet loses almost nothing here, so the gap is the reader, not identity switches.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Where the reader fails</h2>
+      <p class="note">Every predicted tracklet matched to a ground-truth player whose number is labeled: 3,017 tracklets across the 58 clips.</p>
+    </div>
+    <div class="stack" id="stack" role="img" aria-label="Breakdown of 3,017 tracklets by outcome"></div>
+    <div class="keys" id="stackKeys" style="margin-top:10px"></div>
+    <div class="tablewrap" style="margin-top:18px">
+      <table id="buckets"></table>
+    </div>
+    <div class="two" style="margin-top:22px">
+      <div class="facts">
+        <div><b>12.8%</b><span>Accuracy on clean tracklets (at least 80% of frames on one player, n = 2,257).</span></div>
+        <div><b>7.1%</b><span>Accuracy on contaminated tracklets (the tracker mixed players, n = 760).</span></div>
+        <div><b>70</b><span>Wrong numbers that share a digit with the truth, like 1 for 17: a digit was missed or cut off.</span></div>
+      </div>
+      <div class="facts">
+        <div><b>594</b><span>Players with no labeled number where the reader correctly gave none.</span></div>
+        <div><b>23</b><span>Players with no labeled number where the reader still gave one.</span></div>
+        <div><b>25.0%</b><span>Accuracy weighted by tracklet length. Long tracklets are read right more often than short ones.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>How many pixels a number gets</h2>
+      <p class="note" id="hNote"></p>
+    </div>
+    <div class="two">
+      <div class="chart" id="cH"><svg id="hist" viewBox="0 0 640 280" role="img" aria-label="Distribution of player box heights in pixels"></svg></div>
+      <div class="facts" id="hFacts"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="gal-head">
+      <div class="sec-head" style="margin:0">
+        <h2>What the reader is given</h2>
+        <p class="note" id="galNote"></p>
+      </div>
+      <div class="seg" role="group" aria-label="Crop size">
+        <button id="zBig" aria-pressed="true">Enlarged</button>
+        <button id="zReal" aria-pressed="false">Actual pixels</button>
+      </div>
+    </div>
+    <div class="gallery" id="gallery"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Our own run on 5 clips</h2>
+      <p class="note">The full pipeline run end to end on our GPU (item 1b), next to SoccerNet's cached state on the same clips, with the two calibration methods. GS-HOTA per clip.</p>
+    </div>
+    <div class="two">
+      <div class="tablewrap"><table id="five"></table></div>
+      <div class="facts">
+        <div><b>14.3%</b><span>MMOCR tracklet accuracy in our own run (n = 237).</span></div>
+        <div><b>13.9%</b><span>Same reader in SoccerNet's cached state on the same 5 clips (n = 209). Our run reproduces the baseline reader.</span></div>
+        <div><b>+7.64</b><span>GS-HOTA from switching calibration from TVCalib to NBJW on the cached state. Calibration matters as much as jerseys.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>What would move the number</h2>
+      <p class="note">Each failure bucket points to a different fix, sized by how many tracklets it covers.</p>
+    </div>
+    <div class="fix">
+      <div><b>A reader that finds the digits</b><span class="note">76% of scored tracklets get no number although one is labeled. Most of the gain is here: a stronger digit reader, or a step that first picks the frames where the back is visible.</span></div>
+      <div><b>Better crops and frame choice</b><span class="note">11% are read wrong in every frame. Small boxes, motion blur and partial digits (70 share a digit with the truth) suggest feeding larger, sharper crops.</span></div>
+      <div><b>Smarter voting across frames</b><span class="note">Only 2% had the right number in some frame and lost the vote, so a learned aggregation alone moves little until the reader improves.</span></div>
+    </div>
+  </section>
+
+  <footer>Numbers: midterm notebook (notebooks/gsr_baseline_colab_midterm.ipynb), SoccerNet's cached baseline state and our own run, SoccerNet GSR v1.3 validation split. Box heights and crops: ground-truth labels and frames of the validation split. Per-tracklet predictions will be added once exported from the notebook.</footer>
+</div>
+
+<script>
+(() => {
+const $ = (id) => document.getElementById(id);
+function tipAt(box, html, x, y) { let t = box.querySelector(".tip"); if (!t) { t = document.createElement("div"); t.className = "tip"; box.appendChild(t); }
+  if (html == null) { t.hidden = true; return; } t.hidden = false; t.innerHTML = html;
+  t.style.left = Math.min(box.clientWidth - t.offsetWidth - 4, Math.max(0, x + 12)) + "px"; t.style.top = Math.max(0, y - 40) + "px"; }
+
+/* worth: number line */
+(function () {
+  const pts = [["No jersey numbers", 13.14, "--muted", 0], ["MMOCR baseline", 18.85, "--left", 1], ["Oracle per frame", 29.11, "--b-ok", 1], ["Oracle per tracklet", 29.31, "--b-ok", 0]];
+  const W = 640, L = 20, R = 20, X = (v) => L + (v - 10) / 22 * (W - L - R), y = 96;
+  let g = `<rect x="${X(13.14)}" y="${y - 9}" width="${X(18.85) - X(13.14)}" height="18" fill="var(--left)" opacity=".25"/>`;
+  g += `<rect x="${X(18.85)}" y="${y - 9}" width="${X(29.31) - X(18.85)}" height="18" fill="none" stroke="var(--b-ok)" stroke-dasharray="4 3" stroke-width="1.5"/>`;
+  g += `<line x1="${L}" x2="${W - R}" y1="${y + 30}" y2="${y + 30}" stroke="var(--line)"/>`;
+  for (let v = 10; v <= 32; v += 2) g += `<line x1="${X(v)}" x2="${X(v)}" y1="${y + 26}" y2="${y + 34}" stroke="var(--line)"/>` + (v % 4 === 2 || v === 10 ? "" : "") + `<text x="${X(v)}" y="${y + 50}" text-anchor="middle" fill="var(--muted)" font-family="Overpass Mono, monospace" font-size="11">${v}</text>`;
+  g += `<text x="${W - R}" y="${y + 70}" text-anchor="end" fill="var(--muted)" font-family="Atkinson Hyperlegible, sans-serif" font-size="12">GS-HOTA, 58 validation clips</text>`;
+  for (const [name, v, c, up] of pts) { const x = X(v);
+    g += `<circle cx="${x}" cy="${y}" r="7" fill="var(${c})" stroke="var(--bg)" stroke-width="2"/>`;
+    const ty = up ? y - 22 : y - 44, anchor = v > 28 ? "end" : "middle", dx = v > 28 ? 8 : 0;
+    g += `<line x1="${x}" x2="${x}" y1="${y - 9}" y2="${ty + 6}" stroke="var(--line)"/>`;
+    g += `<text x="${x + dx}" y="${ty}" text-anchor="${anchor}" fill="var(--ink)" font-family="Atkinson Hyperlegible, sans-serif" font-size="13" font-weight="700">${name}</text>`;
+    g += `<text x="${x + dx}" y="${ty - 16}" text-anchor="${anchor}" fill="var(--muted)" font-family="Overpass Mono, monospace" font-size="12">${v.toFixed(2)}</text>`; }
+  g += `<text x="${(X(13.14) + X(18.85)) / 2}" y="${y + 4}" text-anchor="middle" fill="var(--ink)" font-family="Overpass Mono, monospace" font-size="11" font-weight="600">+5.71</text>`;
+  g += `<text x="${(X(18.85) + X(29.31)) / 2}" y="${y + 4}" text-anchor="middle" fill="var(--ink)" font-family="Overpass Mono, monospace" font-size="11" font-weight="600">+10.46 still open</text>`;
+  $("worth").innerHTML = g;
+})();
+
+/* buckets */
+(function () {
+  const B = [["Right number", 342, "--b-ok", "", "–"], ["No number, though one is visible", 2297, "--b-null", "MMOCR never read a digit in any frame", "a better reader"],
+    ["Wrong, read in some frame but outvoted", 53, "--b-out", "the right number lost the majority vote", "learned aggregation"], ["Wrong, right number never read", 325, "--b-never", "every read was wrong", "a better reader, better crops"]];
+  const n = B.reduce((a, b) => a + b[1], 0);
+  $("stack").innerHTML = B.map(([l, v, c]) => { const f = v / n; return `<i style="width:${(f * 100).toFixed(2)}%;background:var(${c})" title="${l}: ${v.toLocaleString()} (${(f * 100).toFixed(1)}%)">${f > .08 ? `<span>${(f * 100).toFixed(1)}%</span>` : ""}</i>`; }).join("");
+  $("stackKeys").innerHTML = B.map(([l, , c]) => `<span><i class="sw" style="background:var(${c})"></i>${l}</span>`).join("");
+  $("buckets").innerHTML = `<thead><tr><th>Outcome</th><th class="r">Tracklets</th><th class="r">Share</th><th>What it means</th><th>What would fix it</th></tr></thead><tbody>` +
+    B.map(([l, v, c, m, fx]) => `<tr><td><i class="sw" style="background:var(${c})"></i>${l}</td><td class="r num">${v.toLocaleString()}</td><td class="r num">${(v / n * 100).toFixed(1)}%</td><td class="muted">${m || "the tracklet's final number matches the label"}</td><td>${fx}</td></tr>`).join("") + "</tbody>";
+})();
+
+fetch("data.json").then((r) => r.json()).then((D) => {
+  /* histogram of box heights */
+  const H = D.heights, W = 640, Hh = 280, L = 48, R = 12, T = 14, Bm = 40, edges = H.edges.slice(0, -1), counts = H.counts, maxH = 250;
+  const X = (v) => L + Math.min(v, maxH) / maxH * (W - L - R), ymax = Math.max(...counts), Y = (v) => T + (1 - v / ymax) * (Hh - T - Bm);
+  let g = "";
+  for (const f of [0, .25, .5, .75, 1]) { const v = Math.round(ymax * f / 1000) * 1000; g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" fill="var(--muted)" font-family="Overpass Mono, monospace" font-size="11">${(v / 1000).toFixed(0)}k</text>`; }
+  edges.forEach((e, i) => { if (e >= maxH) return; const x0 = X(e) + 1, x1 = X(Math.min(e + 10, maxH)) - 1;
+    g += `<rect class="hb" data-i="${i}" x="${x0}" y="${Y(counts[i])}" width="${Math.max(1, x1 - x0)}" height="${Y(0) - Y(counts[i])}" fill="rgb(var(--bar))" rx="2"/>`; });
+  for (let v = 0; v <= 250; v += 50) g += `<text x="${X(v)}" y="${Hh - Bm + 18}" text-anchor="middle" fill="var(--muted)" font-family="Overpass Mono, monospace" font-size="11">${v}</text>`;
+  g += `<text x="${W - R}" y="${Hh - 4}" text-anchor="end" fill="var(--muted)" font-family="Atkinson Hyperlegible, sans-serif" font-size="12">player box height, pixels in a 1920×1080 frame</text>`;
+  g += `<line x1="${X(H.median)}" x2="${X(H.median)}" y1="${T}" y2="${Y(0)}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="4 3"/><text x="${X(H.median) + 6}" y="${T + 12}" fill="var(--ink)" font-family="Overpass Mono, monospace" font-size="12">median ${H.median} px</text>`;
+  $("hist").innerHTML = g;
+  const box = $("cH");
+  $("hist").addEventListener("pointermove", (ev) => { const t = ev.target.closest(".hb"); if (!t) return tipAt(box, null);
+    const i = +t.dataset.i, br = box.getBoundingClientRect(); tipAt(box, `${edges[i]}–${edges[i] + 10} px tall<br>${counts[i].toLocaleString()} player boxes<br>${(counts[i] / H.n * 100).toFixed(1)}% of all`, ev.clientX - br.left, ev.clientY - br.top); });
+  $("hist").addEventListener("pointerleave", () => tipAt(box, null));
+  const digit = (h) => Math.round(h * 0.15);
+  $("hNote").textContent = `Every labeled player box in the validation split: ${H.n.toLocaleString()} boxes across ${D.labeled_tracks.clips} clips.`;
+  $("hFacts").innerHTML = [[H.median + " px", "Height of the median player. A back number is roughly 15% of body height, so its digits are about " + digit(H.median) + " px tall."],
+    [H.p10 + " px", "One player in ten is shorter than this, with digits of about " + digit(H.p10) + " px."],
+    [Math.round(D.labeled_tracks.labeled / D.labeled_tracks.tracks * 100) + "%", `of player tracks have a number in the labels (${D.labeled_tracks.labeled} of ${D.labeled_tracks.tracks}). The rest never show it clearly enough to label.`]]
+    .map(([b, s]) => `<div><b>${b}</b><span>${s}</span></div>`).join("");
+
+  /* gallery */
+  const G = D.crops, [cw, ch] = G.cell; let real = false;
+  $("galNote").textContent = `${G.tracks.length} players in clip ${G.clip}, ${G.per_track} crops each spread over the 30 s, from the labeled boxes. The label under each crop is its box height. "Actual pixels" shows the crops at the size they have in the broadcast frame.`;
+  function drawGallery() {
+    $("gallery").innerHTML = G.tracks.map((t, r) => {
+      const col = t.team === "left" ? "var(--left)" : "var(--right)";
+      const tag = t.jersey ? `<span class="shirt" style="background:${col};color:#fff">${t.jersey}</span>` : `<span class="shirt none" style="outline-color:${col}">none</span>`;
+      const crops = t.crops.map((c, k) => { const s = Math.min(cw / (c.w * 1.16), ch / (c.h * 1.16)), z = real ? 1 / s : 1, dw = Math.round(cw * z), dh = Math.round(ch * z);
+        const sheetW = cw * G.per_track * z, sheetH = ch * G.tracks.length * z;
+        return `<div class="crop"><i style="width:${dw}px;height:${dh}px;background-image:url(crops.jpg);background-size:${sheetW}px ${sheetH}px;background-position:-${k * cw * z}px -${r * ch * z}px" title="${(c.f / G.fps).toFixed(1)} s · box ${c.w}×${c.h} px"></i><small>${c.h}px</small></div>`; }).join("");
+      return `<div class="grow"><div class="gname"><b>${tag}${t.role === "goalkeeper" ? "Goalkeeper" : (t.team === "left" ? "Left" : "Right") + " team"}</b><span>track ${t.track} · on screen ${(t.frames / G.fps).toFixed(1)} s</span></div><div class="crops">${crops}</div></div>`; }).join("");
+  }
+  $("zBig").onclick = () => { real = false; $("zBig").setAttribute("aria-pressed", true); $("zReal").setAttribute("aria-pressed", false); drawGallery(); };
+  $("zReal").onclick = () => { real = true; $("zReal").setAttribute("aria-pressed", true); $("zBig").setAttribute("aria-pressed", false); drawGallery(); };
+  drawGallery();
+});
+
+/* five clips */
+(function () {
+  const rows = [["SNGS-021", 24.17, 41.15, 38.37], ["SNGS-022", 10.31, 30.91, 23.70], ["SNGS-023", 25.07, 21.33, 18.66], ["SNGS-024", 11.87, 23.70, 29.33], ["SNGS-025", 33.82, 34.30, 26.90]];
+  const all = ["All 5 (combined)", 23.54, 31.18, 27.69];
+  const f = (v, row) => { const best = Math.max(...row.slice(1)); return `<td class="r num" style="${v === best ? "font-weight:700" : ""}">${v.toFixed(2)}</td>`; };
+  $("five").innerHTML = `<thead><tr><th>Clip</th><th class="r">Cached, TVCalib</th><th class="r">Cached, NBJW</th><th class="r">Our run, NBJW</th></tr></thead><tbody>` +
+    rows.map((r) => `<tr><td>${r[0]}</td>${r.slice(1).map((v) => f(v, r)).join("")}</tr>`).join("") +
+    `<tr><td><b>${all[0]}</b></td>${all.slice(1).map((v) => f(v, all)).join("")}</tr></tbody>`;
+})();
+})();
+</script>
