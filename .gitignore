@@ -240,3 +240,4 @@ data/
 **/pretrained_models/
 *.pklz
 *.mp4
+jersey/crops.jpg # public 유지할 때만
