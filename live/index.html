@@ -1,0 +1,488 @@
+<meta charset="utf-8">
+<title>GSR Live Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Atkinson+Hyperlegible:wght@400;700&family=Overpass+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: the analyst's bench screen. One big tactics board on the left, the call sheet on the right,
+   the record of calls vs what happened underneath. Same whiteboard / chalkboard world as the clip explorer. */
+:root {
+  --bg: #f6f7f8; --surface: #ffffff; --surface-2: #e9edf0; --ink: #15191d; --muted: #59626b; --line: #d3d9df;
+  --accent: #15191d; --accent-ink: #ffffff;
+  --board: #ffffff; --board-line: #a3adb6; --mark: #15191d; --cam: rgba(21,25,29,.05);
+  --home: #1d5bbf; --away: #cc3626; --pass: #c98100; --good: #17895a; --bad: #cc3626;
+  --display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Overpass Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #131917; --surface: #19211e; --surface-2: #232d29; --ink: #edf0ea; --muted: #9ea8a2; --line: #2f3a35;
+  --accent: #edf0ea; --accent-ink: #131917;
+  --board: #1e2a25; --board-line: rgba(237,240,234,.5); --mark: #f3f5ef; --cam: rgba(237,240,234,.05);
+  --home: #6fa3f2; --away: #f2806b; --pass: #ffd23f; --good: #42c98f; --bad: #f2806b;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #131917; --surface: #19211e; --surface-2: #232d29; --ink: #edf0ea; --muted: #9ea8a2; --line: #2f3a35;
+  --accent: #edf0ea; --accent-ink: #131917;
+  --board: #1e2a25; --board-line: rgba(237,240,234,.5); --mark: #f3f5ef; --cam: rgba(237,240,234,.05);
+  --home: #6fa3f2; --away: #f2806b; --pass: #ffd23f; --good: #42c98f; --bad: #f2806b;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--body); margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 48px; }
+.wrap { max-width: 1440px; margin: 0 auto; display: grid; gap: 36px; }
+.wrap > *, header.top > *, .strip > span { min-width: 0; }
+h1, h2 { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: .02em; margin: 0; line-height: 1; text-wrap: balance; }
+h1 { font-size: clamp(38px, 5vw, 60px); }
+h2 { font-size: 30px; }
+.sub { font-size: 14px; color: var(--muted); }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: stretch; justify-content: space-between; gap: 14px 28px;
+  padding-bottom: 16px; border-bottom: 3px solid var(--ink); }
+header.top .ttl { display: grid; gap: 6px; align-content: end; }
+.strip { display: flex; flex-wrap: wrap; font-family: var(--mono); font-size: 13px; }
+.strip > span { display: grid; gap: 2px; padding: 4px 14px; border-left: 1px solid var(--line); }
+.strip > span:first-child { border-left: 0; padding-left: 0; }
+.strip small { color: var(--muted); font-size: 12px; }
+.strip b { font: 800 24px/1 var(--display); letter-spacing: .03em; text-transform: uppercase; }
+.dotsw { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: 1px; margin-right: 6px; }
+.live-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--bad); margin-right: 6px; vertical-align: 2px; }
+@media (prefers-reduced-motion: no-preference) { .live-dot.on { animation: blink 1s steps(2, start) infinite; } }
+@keyframes blink { to { visibility: hidden; } }
+
+.main { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 28px; align-items: start; }
+.board-wrap { min-width: 0; }
+#board { width: 100%; max-width: 100%; aspect-ratio: 112 / 76; display: block; border: 1.5px solid var(--line); border-radius: 3px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 14px; color: var(--muted); }
+.sw { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.sw.ln { width: 18px; height: 3px; border-radius: 0; vertical-align: 4px; }
+.controls { display: grid; grid-template-columns: auto auto 1fr auto; gap: 10px 14px; align-items: center; margin-top: 12px; }
+button, select { font: 700 14px var(--body); color: var(--ink); background: var(--surface); border: 1.5px solid var(--line); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+button:hover, select:hover { border-color: var(--muted); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); min-width: 76px; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--home); outline-offset: 2px; }
+input[type=range] { width: 100%; accent-color: var(--ink); }
+
+.sheet { display: grid; gap: 20px; min-width: 0; }
+.blk { display: grid; gap: 10px; padding-top: 12px; border-top: 3px solid var(--ink); }
+.blk h3 { font: 800 20px/1 var(--display); text-transform: uppercase; letter-spacing: .03em; margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.blk h3 span { font: 400 13px var(--mono); color: var(--muted); text-transform: none; letter-spacing: 0; }
+.who { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; min-height: 30px; }
+.shirt { display: inline-grid; place-items: center; min-width: 30px; height: 30px; padding: 0 5px; border-radius: 4px; color: #fff; font: 600 14px var(--mono); }
+.bars { display: grid; gap: 7px; }
+.bar { display: grid; grid-template-columns: 150px 1fr 48px; gap: 10px; align-items: center; font-size: 15px; }
+.bar .tr { height: 10px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+.bar .tr i { display: block; height: 100%; transition: width .15s linear; }
+@media (prefers-reduced-motion: reduce) { .bar .tr i { transition: none; } }
+.opts { width: 100%; border-collapse: collapse; font-size: 15px; }
+.opts th, .opts td { padding: 6px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+.opts th { font: 700 13px var(--body); color: var(--muted); border-bottom: 1.5px solid var(--ink); }
+.opts td.r, .opts th.r { text-align: right; }
+.engine { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 3px; }
+.engine div { padding: 8px 10px; border-left: 1px solid var(--line); }
+.engine div:first-child { border-left: 0; }
+.engine b { display: block; font: 600 20px/1.15 var(--mono); }
+.engine span { font-size: 13px; color: var(--muted); }
+#spark { width: 100%; height: 46px; display: block; }
+.note { font-size: 14px; color: var(--muted); max-width: 68ch; margin: 0; }
+.empty { color: var(--muted); font-size: 15px; }
+
+.calls-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 8px 20px; margin-bottom: 12px; }
+.tally { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: 3px; }
+.tally div { padding: 6px 14px; border-left: 1px solid var(--line); }
+.tally div:first-child { border-left: 0; }
+.tally b { font: 600 20px/1.1 var(--mono); display: block; }
+.tally span { font-size: 13px; color: var(--muted); }
+.tablewrap { overflow-x: auto; min-width: 0; max-height: 380px; overflow-y: auto; }
+table.calls { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 620px; }
+table.calls th, table.calls td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+table.calls thead th { font: 700 13px var(--body); color: var(--muted); border-bottom: 1.5px solid var(--ink); position: sticky; top: 0; background: var(--bg); }
+.hit { color: var(--good); font-weight: 700; }
+.miss { color: var(--bad); font-weight: 700; }
+footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+.viewbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 12px; }
+.viewbar label { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; min-width: 0; }
+.viewbar select { max-width: 100%; }
+.seg { display: inline-flex; border: 1.5px solid var(--ink); border-radius: 4px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; border-left: 1.5px solid var(--ink); }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.stage { position: relative; width: 100%; max-width: 100%; aspect-ratio: 112 / 76; border: 1.5px solid var(--line); border-radius: 3px; overflow: hidden; background: var(--board); }
+.stage.cast { aspect-ratio: 16 / 9; background: #0b0f0d; border-color: #0b0f0d; }
+.stage video, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage .tag { position: absolute; left: 10px; bottom: 10px; font: 500 12px var(--mono); color: #fff; background: rgba(0,0,0,.55); padding: 4px 8px; border-radius: 2px; pointer-events: none; }
+@media (max-width: 980px) { .main { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 520px) { .controls { grid-template-columns: auto 1fr; } .controls .wide { grid-column: 1 / -1; } .strip > span { padding: 4px 10px; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="ttl">
+      <div class="sub">Possession model on a 10 Hz tracking feed, CMU 11-785 Group 15</div>
+      <h1>GSR Live Board</h1>
+    </div>
+    <div class="strip" id="strip"></div>
+  </header>
+
+  <section class="main">
+    <div class="board-wrap">
+      <div class="viewbar">
+        <label for="source">Source <select id="source"></select></label>
+        <div class="seg" role="group" aria-label="View">
+          <button id="vBoard" aria-pressed="true">Board</button>
+          <button id="vCast" aria-pressed="false">Broadcast</button>
+        </div>
+      </div>
+      <div class="stage" id="stage">
+        <video id="vid" muted playsinline preload="auto" hidden></video>
+        <canvas id="board" aria-label="Players, ball and pass options"></canvas>
+        <span class="tag" id="stageTag" hidden></span>
+      </div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--home)"></i><span id="lgHomeName">Home</span></span>
+        <span><i class="sw" style="background:var(--away)"></i><span id="lgAwayName">Away</span></span>
+        <span id="lgOff"><i class="sw" style="background:transparent;outline:1.5px dashed var(--muted)"></i>Off camera (position estimated)</span>
+        <span><i class="sw ln" style="background:var(--pass)"></i>Pass options, thicker is more likely</span>
+        <span id="lgCam"><i class="sw" style="background:var(--cam);outline:1px solid var(--line);border-radius:1px"></i>Camera view</span>
+      </div>
+      <div class="controls" id="controls">
+        <button id="play" class="primary">Pause</button>
+        <select id="speed" aria-label="Playback speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+        <input id="scrub" class="wide" type="range" min="0" max="0" value="0" aria-label="Position in the recording">
+        <span class="num" id="pos">0:00</span>
+      </div>
+    </div>
+
+    <aside class="sheet">
+      <div class="blk">
+        <h3>On the ball <span id="clockSmall"></span></h3>
+        <div class="who" id="who"><span class="empty">Loading</span></div>
+      </div>
+      <div class="blk">
+        <h3>How this possession ends</h3>
+        <div class="bars" id="outcome"></div>
+        <div class="bars" id="soon"></div>
+      </div>
+      <div class="blk">
+        <h3>Pass options <span>if they pass</span></h3>
+        <table class="opts"><thead><tr><th>Teammate</th><th class="r">Gets it</th><th class="r">Arrives</th></tr></thead><tbody id="opts"></tbody></table>
+      </div>
+      <div class="blk">
+        <h3>Engine <span id="engineMode"></span></h3>
+        <div class="engine">
+          <div><b id="msNow">–</b><span>this frame</span></div>
+          <div><b id="msP50">–</b><span>median</span></div>
+          <div><b id="msP95">–</b><span>95th pct.</span></div>
+        </div>
+        <canvas id="spark" aria-label="Processing time per frame"></canvas>
+        <p class="note" id="engineNote"></p>
+      </div>
+    </aside>
+  </section>
+
+  <section id="callsSec">
+    <div class="calls-head">
+      <div>
+        <h2>Calls vs what happened</h2>
+        <p class="note">For every pass, the model's call 0.5 s before the ball left the player's foot, next to SkillCorner's event record. Rows appear as play passes them.</p>
+      </div>
+      <div class="tally" id="tally"></div>
+    </div>
+    <div class="tablewrap">
+      <table class="calls">
+        <thead><tr><th>Clock</th><th>Player</th><th>What happened</th><th>Model's top option</th><th>Arrives (model)</th><th>Right receiver?</th></tr></thead>
+        <tbody id="calls"></tbody>
+      </table>
+    </div>
+  </section>
+  <p class="note" id="gsrNote" hidden>This clip has no event record, so there is no calls table. The model was trained on SkillCorner feeds, where players outside the camera view are estimated; in GSR clips only the players on screen are known, so expect less reliable pass options when teammates are off camera.</p>
+
+  <footer id="foot">Full match: SkillCorner open data (A-League 2024/25), used with credit to SkillCorner; the model never saw this match in training. GSR clip: SoccerNet Game State Reconstruction (SNGS-021, labels v1.3).</footer>
+</div>
+
+<script>
+(() => {
+const $ = (id) => document.getElementById(id);
+const tok = {};
+function readTokens() { const cs = getComputedStyle(document.documentElement);
+  for (const k of ["bg","surface-2","ink","muted","line","board","board-line","mark","cam","home","away","pass","good","bad"]) tok[k] = cs.getPropertyValue("--" + k).trim(); }
+const SOURCES = [
+  { id: "match", label: "Full match · Wellington Phoenix v Melbourne Victory (tracking)", file: "replay.json" },
+  { id: "gsr", label: "GSR clip SNGS-021 · real broadcast video (30 s)", file: "replay_gsr.json", video: "broadcast_gsr.mp4" },
+];
+let R = null, FR = [], EV = [], SRC = SOURCES[0], live = false, cur = null, idx = 0, playing = true, speed = 1, msHist = [], view = "board";
+const cache = {};
+const OUT = [["Pass", "pass"], ["Lose the ball", "bad"], ["Shot", "home"]];
+const vid = $("vid");
+
+function fitCanvas(cv) { const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  const w = Math.max(1, Math.round(r.width * d)), h = Math.max(1, Math.round(r.height * d));
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  const ctx = cv.getContext("2d"); ctx.setTransform(d, 0, 0, d, 0, 0); return [ctx, r.width, r.height]; }
+const P = (pid) => R.roster.players[String(pid)] || {};
+const teamCol = (pid) => P(pid).team === "home" ? tok.home : tok.away;
+const shirt = (pid) => { const p = P(pid); return p.n != null ? String(p.n) : "?"; };
+const mmss = (s) => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+const fmtClock = (m) => !m ? "–" : m.t ? m.t.replace(/^00:/, "").slice(0, 5) + (m.p ? "  P" + m.p : "") : m.vt != null ? mmss(m.vt) + " of clip" : "–";
+
+/* ---------- shared drawing ---------- */
+function arrow(ctx, a, b, col, lw, gap = 10) { const ang = Math.atan2(b[1] - a[1], b[0] - a[0]), L = 7 + lw * 1.5;
+  const e = [b[0] - (gap + 2) * Math.cos(ang), b[1] - (gap + 2) * Math.sin(ang)], st = [a[0] + gap * Math.cos(ang), a[1] + gap * Math.sin(ang)];
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(...st); ctx.lineTo(...e); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(...e); ctx.lineTo(e[0] - L * Math.cos(ang - .42), e[1] - L * Math.sin(ang - .42)); ctx.lineTo(e[0] - L * Math.cos(ang + .42), e[1] - L * Math.sin(ang + .42)); ctx.closePath(); ctx.fill(); }
+function label(ctx, x, y, s, col, halo) { ctx.font = "600 12px 'Overpass Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.lineWidth = 4; ctx.strokeStyle = halo; ctx.strokeText(s, x, y); ctx.fillStyle = col; ctx.fillText(s, x, y); }
+function positions(m) { const at = {}; for (const [pid, x, y, d] of m.pl) at[pid] = [x, y, d]; return at; }
+function passOptions(m, at) { if (m.c == null || !at[m.c] || !m.op) return [];
+  return m.op.map(([pid, p]) => ({ pid, j: m.o[0] * p })).filter((o) => o.j >= .05 && at[o.pid]); }
+function noTracking(ctx, w, h, col) { ctx.fillStyle = col; ctx.font = "400 16px 'Atkinson Hyperlegible', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("No tracking in this frame: the broadcast is showing a replay or a close-up.", w / 2, h / 2); }
+
+/* ---------- board (top-down) ---------- */
+function geom(w, h) { const [L, W] = R.roster.pitch, pad = 18, s = Math.min((w - 2 * pad) / L, (h - 2 * pad) / W);
+  const ox = (w - L * s) / 2, oy = (h - W * s) / 2; return { s, L, W, P: (x, y) => [ox + (x + L / 2) * s, oy + (W / 2 - y) * s] }; }
+function drawPitch(ctx, w, h, g) {
+  ctx.fillStyle = tok.board; ctx.fillRect(0, 0, w, h);
+  const { P, s, L, W } = g; ctx.strokeStyle = tok["board-line"]; ctx.lineWidth = 1.5;
+  const line = (a, b, c, d) => { ctx.beginPath(); ctx.moveTo(...P(a, b)); ctx.lineTo(...P(c, d)); ctx.stroke(); };
+  const [x0, y0] = P(-L / 2, W / 2); ctx.strokeRect(x0, y0, L * s, W * s); line(0, -W / 2, 0, W / 2);
+  ctx.beginPath(); ctx.arc(...P(0, 0), 9.15 * s, 0, 7); ctx.stroke();
+  for (const sg of [-1, 1]) { const gx = L / 2 * sg;
+    for (const [d, hw] of [[16.5, 20.16], [5.5, 9.16]]) { const ix = gx - sg * d; line(gx, -hw, ix, -hw); line(ix, -hw, ix, hw); line(ix, hw, gx, hw); }
+    line(gx, -3.66, gx + sg * 1.2, -3.66); line(gx + sg * 1.2, -3.66, gx + sg * 1.2, 3.66); line(gx + sg * 1.2, 3.66, gx, 3.66);
+    ctx.fillStyle = tok["board-line"]; ctx.beginPath(); ctx.arc(...P(gx - sg * 11, 0), 1.8, 0, 7); ctx.fill(); }
+}
+function drawTop(ctx, w, h) {
+  const g = geom(w, h); drawPitch(ctx, w, h, g); const m = cur; if (!m) return;
+  if (!m.pl.length) return noTracking(ctx, w, h, tok.muted);
+  if (m.cam) { ctx.fillStyle = tok.cam; ctx.beginPath(); for (let i = 0; i < 8; i += 2) { const [X, Y] = g.P(m.cam[i], m.cam[i + 1]); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); } ctx.closePath(); ctx.fill(); }
+  const at = positions(m);
+  if (m.c != null && at[m.c]) { const o = g.P(at[m.c][0], at[m.c][1]);
+    for (const { pid, j } of passOptions(m, at)) { const q = g.P(at[pid][0], at[pid][1]);
+      ctx.globalAlpha = Math.min(1, .35 + j * 1.6); arrow(ctx, o, q, tok.pass, 1.2 + j * 9); ctx.globalAlpha = 1;
+      label(ctx, (o[0] + q[0]) / 2, (o[1] + q[1]) / 2 - 9, Math.round(j * 100) + "%", tok.ink, tok.board); } }
+  const tr = []; if (!live) for (let k = Math.max(0, idx - 15); k <= idx; k++) { const f = FR[k]; if (f && f.b) tr.push(g.P(f.b[0], f.b[1])); }
+  if (tr.length > 1) { ctx.strokeStyle = tok.muted; ctx.globalAlpha = .5; ctx.lineWidth = 1.5; ctx.setLineDash([2, 3]); ctx.beginPath(); tr.forEach((p, i) => i ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; }
+  const r = Math.max(7, g.s * 1.05);
+  for (const [pid, x, y, d] of m.pl) { const [X, Y] = g.P(x, y), col = teamCol(pid), gk = P(pid).gk;
+    ctx.beginPath(); gk ? ctx.rect(X - r, Y - r, 2 * r, 2 * r) : ctx.arc(X, Y, r, 0, 7);
+    if (d) { ctx.fillStyle = col; ctx.fill(); } else { ctx.fillStyle = tok.board; ctx.fill(); ctx.setLineDash([3, 2]); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); }
+    ctx.font = "600 " + Math.round(r * 1.05) + "px 'Overpass Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = d ? "#fff" : col; ctx.fillText(shirt(pid), X, Y + .5);
+    if (pid === m.c) { ctx.strokeStyle = tok.mark; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(X, Y, r + 5, 0, 7); ctx.stroke(); } }
+  if (m.b) { const [X, Y] = g.P(m.b[0], m.b[1]), br = 4.5 + Math.min(6, m.b[2] * 1.2);
+    ctx.fillStyle = tok.board; ctx.strokeStyle = tok.mark; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(X, Y, br, 0, 7); ctx.fill(); ctx.stroke(); }
+}
+
+/* ---------- broadcast: real video (GSR clip) ---------- */
+function drawOnVideo(ctx, w, h) {
+  const m = cur; if (!m || !m.h) return; const H = m.h, [iw, ih] = R.image, sx = w / iw, sy = h / ih;
+  const map = (x, y) => { const d = H[6] * x + H[7] * y + 1; return [(H[0] * x + H[1] * y + H[2]) / d * sx, (H[3] * x + H[4] * y + H[5]) / d * sy]; };
+  const ring = (x, y, r) => { ctx.beginPath(); for (let k = 0; k <= 32; k++) { const a = k / 32 * Math.PI * 2, [u, v] = map(x + r * Math.cos(a), y + r * Math.sin(a)); k ? ctx.lineTo(u, v) : ctx.moveTo(u, v); } };
+  const at = positions(m);
+  for (const [pid, x, y] of m.pl) { ring(x, y, .75); ctx.strokeStyle = teamCol(pid); ctx.lineWidth = 2.5; ctx.stroke(); }
+  if (m.c != null && at[m.c]) { const o = map(at[m.c][0], at[m.c][1]);
+    for (const { pid, j } of passOptions(m, at)) { const q = map(at[pid][0], at[pid][1]);
+      ctx.globalAlpha = Math.min(1, .45 + j * 1.6); arrow(ctx, o, q, "#ffd23f", 1.5 + j * 9, 6); ctx.globalAlpha = 1;
+      label(ctx, (o[0] + q[0]) / 2, (o[1] + q[1]) / 2 - 10, (P(pid).n != null ? "#" + P(pid).n + " " : "") + Math.round(j * 100) + "%", "#ffd23f", "rgba(0,0,0,.65)"); }
+    ring(at[m.c][0], at[m.c][1], 1.4); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3; ctx.stroke(); }
+  for (const [pid, x, y] of m.pl) { const [u, v] = map(x, y); label(ctx, u, v + 14, shirt(pid) === "?" ? "" : shirt(pid), "#fff", teamCol(pid)); }
+}
+
+/* ---------- broadcast: virtual camera (tracking only) ---------- */
+const CAM = { tx: 0, ty: 0, f: 0, ok: false };
+function updateCam(m, w) {
+  if (!m || !m.cam) return; const c = m.cam, W = R.roster.pitch[1];
+  const xs = [c[0], c[2], c[4], c[6]], tx = xs.reduce((a, b) => a + b) / 4;
+  const yb = (c[5] + c[7]) / 2, yt = Math.min(W / 2, (c[1] + c[3]) / 2), ty = yb * .55 + yt * .45;
+  const k = CAM.ok ? .12 : 1; CAM.tx += (tx - CAM.tx) * k; CAM.ty += (ty - CAM.ty) * k;
+  // zoom: fit the view's near edge (bottom corners) to the frame width
+  const basis = camBasis(), pr = (x, y) => { const d = [x - basis.pos[0], y - basis.pos[1], -basis.pos[2]];
+    const zc = dot(d, basis.fw); return dot(d, basis.rt) / zc; };
+  const span = Math.abs(pr(c[4], c[5]) - pr(c[6], c[7]));
+  if (span > 1e-3) { const f = w / span; CAM.f += (Math.min(f, w * 6) - CAM.f) * k; }
+  CAM.ok = true;
+}
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const norm = (a) => { const l = Math.hypot(...a); return a.map((v) => v / l); };
+function camBasis() { const W = R.roster.pitch[1], pos = [CAM.tx * .6, -W / 2 - 34, 21];
+  const fw = norm([CAM.tx - pos[0], CAM.ty - pos[1], -pos[2]]), rt = norm([fw[1], -fw[0], 0]);
+  const up = [rt[1] * fw[2] - rt[2] * fw[1], rt[2] * fw[0] - rt[0] * fw[2], rt[0] * fw[1] - rt[1] * fw[0]];
+  return { pos, fw, rt, up }; }
+function drawVirtual(ctx, w, h) {
+  const m = cur; updateCam(m, w); const [L, W] = R.roster.pitch;
+  const B = camBasis(), f = CAM.f || w;
+  const pj = (x, y, z = 0) => { const d = [x - B.pos[0], y - B.pos[1], z - B.pos[2]], zc = dot(d, B.fw);
+    if (zc < 1) return null; return [w / 2 + f * dot(d, B.rt) / zc, h / 2 - f * dot(d, B.up) / zc, zc]; };
+  // stands and grass
+  const sky = ctx.createLinearGradient(0, 0, 0, h); sky.addColorStop(0, "#151b19"); sky.addColorStop(1, "#24302b");
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h);
+  const quad = (pts, col) => { const q = pts.map((p) => pj(...p)); if (q.some((v) => !v)) return; ctx.fillStyle = col; ctx.beginPath(); q.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fill(); };
+  quad([[-L / 2 - 6, -W / 2 - 6], [L / 2 + 6, -W / 2 - 6], [L / 2 + 6, W / 2 + 6], [-L / 2 - 6, W / 2 + 6]], "#2c6a3e");
+  const n = 18; for (let i = 0; i < n; i += 2) { const x0 = -L / 2 + i * L / n, x1 = x0 + L / n; quad([[x0, -W / 2], [x1, -W / 2], [x1, W / 2], [x0, W / 2]], "#337647"); }
+  // lines
+  ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.lineWidth = Math.max(1, f / w * 1.6); ctx.lineJoin = "round";
+  const poly = (pts) => { ctx.beginPath(); let on = false; for (const p of pts) { const q = pj(p[0], p[1]); if (!q) { on = false; continue; } on ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); on = true; } ctx.stroke(); };
+  const seg = (a, b, c, d, k = 12) => poly(Array.from({ length: k + 1 }, (_, i) => [a + (c - a) * i / k, b + (d - b) * i / k]));
+  seg(-L / 2, -W / 2, L / 2, -W / 2, 40); seg(-L / 2, W / 2, L / 2, W / 2, 40); seg(-L / 2, -W / 2, -L / 2, W / 2, 20); seg(L / 2, -W / 2, L / 2, W / 2, 20); seg(0, -W / 2, 0, W / 2, 20);
+  poly(Array.from({ length: 49 }, (_, i) => [9.15 * Math.cos(i / 48 * 7), 9.15 * Math.sin(i / 48 * 7)]));
+  for (const sg of [-1, 1]) { const gx = L / 2 * sg; for (const [d, hw] of [[16.5, 20.16], [5.5, 9.16]]) { const ix = gx - sg * d; seg(gx, -hw, ix, -hw); seg(ix, -hw, ix, hw); seg(ix, hw, gx, hw); } }
+  if (!m || !m.pl.length) { ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(0, 0, w, h); return noTracking(ctx, w, h, "#e8ece9"); }
+  const at = positions(m);
+  // pass options on the grass
+  if (m.c != null && at[m.c]) { const o = pj(at[m.c][0], at[m.c][1]);
+    for (const { pid, j } of passOptions(m, at)) { const q = pj(at[pid][0], at[pid][1]); if (!o || !q) continue;
+      ctx.globalAlpha = Math.min(1, .45 + j * 1.6); arrow(ctx, o, q, "#ffd23f", 1.5 + j * 8, 6); ctx.globalAlpha = 1;
+      label(ctx, (o[0] + q[0]) / 2, (o[1] + q[1]) / 2 - 10, Math.round(j * 100) + "%", "#ffd23f", "rgba(0,0,0,.6)"); }
+    const ring = []; for (let k = 0; k <= 32; k++) { const a = k / 32 * 7, q = pj(at[m.c][0] + 1.3 * Math.cos(a), at[m.c][1] + 1.3 * Math.sin(a)); if (q) ring.push(q); }
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.5; ctx.beginPath(); ring.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); }
+  // players, far to near
+  const ps = m.pl.map(([pid, x, y, d]) => ({ pid, x, y, d, foot: pj(x, y), head: pj(x, y, 1.85) })).filter((p) => p.foot && p.head).sort((a, b) => b.foot[2] - a.foot[2]);
+  for (const p of ps) { const hpx = p.foot[1] - p.head[1]; if (hpx < 2) continue; const bw = hpx * .36, X = p.foot[0];
+    ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(X, p.foot[1], bw * .8, bw * .25, 0, 0, 7); ctx.fill();
+    ctx.globalAlpha = p.d ? 1 : .45; ctx.fillStyle = teamCol(p.pid);
+    const top = p.head[1], r = bw / 2; ctx.beginPath(); ctx.moveTo(X - r, top + r); ctx.arc(X, top + r, r, Math.PI, 0); ctx.lineTo(X + r, p.foot[1] - r); ctx.arc(X, p.foot[1] - r, r, 0, Math.PI); ctx.closePath(); ctx.fill();
+    if (hpx > 18) { ctx.fillStyle = "#fff"; ctx.font = "600 " + Math.round(Math.min(16, hpx * .32)) + "px 'Overpass Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(shirt(p.pid), X, top + hpx * .42); }
+    ctx.globalAlpha = 1; }
+  if (m.b) { const g = pj(m.b[0], m.b[1]), q = pj(m.b[0], m.b[1], m.b[2] + .11), q2 = pj(m.b[0], m.b[1], m.b[2] + .33);
+    if (g && q && q2) { const r = Math.max(2.5, (q[1] - q2[1]) * .5); ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.ellipse(g[0], g[1], r, r * .4, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.strokeStyle = "#111"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(q[0], q[1], r, 0, 7); ctx.fill(); ctx.stroke(); } }
+}
+
+function drawStage() {
+  if (!R) return; const cv = $("board"), cast = view === "cast", hasVideo = !!SRC.video && !live;
+  $("stage").classList.toggle("cast", cast); vid.hidden = !(cast && hasVideo);
+  const [ctx, w, h] = fitCanvas(cv); ctx.clearRect(0, 0, w, h);
+  $("stageTag").hidden = !cast; $("stageTag").textContent = hasVideo ? "Real broadcast · predictions drawn through the per-frame homography" : "Virtual camera · drawn from tracking, follows the real broadcast camera";
+  $("lgCam").hidden = cast || hasVideo; $("lgOff").hidden = hasVideo;
+  if (!cast) return drawTop(ctx, w, h);
+  if (hasVideo) return drawOnVideo(ctx, w, h);
+  drawVirtual(ctx, w, h);
+}
+
+/* ---------- call sheet ---------- */
+function bars(el, rows) { el.innerHTML = rows.map(([l, v, c]) => `<div class="bar"><span>${l}</span><span class="tr"><i style="width:${Math.round(v * 100)}%;background:var(--${c})"></i></span><span class="num" style="text-align:right">${Math.round(v * 100)}%</span></div>`).join(""); }
+function drawSheet() {
+  const m = cur; $("clockSmall").textContent = fmtClock(m);
+  if (!m || m.c == null) {
+    $("who").innerHTML = '<span class="empty">Nobody has the ball: in flight, out of play, or not seen by the camera.</span>';
+    bars($("outcome"), OUT.map(([l, c]) => [l, 0, c])); bars($("soon"), [["Releases within 1 s", 0, "ink"]]); $("opts").innerHTML = ""; return; }
+  const p = P(m.c), tn = R.roster.teams[p.team];
+  $("who").innerHTML = `<span class="shirt" style="background:${teamCol(m.c)}">${shirt(m.c)}</span>${p.name || "Player " + m.c}<span class="sub" style="margin-left:auto">${tn ? tn.short || tn.name : ""}</span>`;
+  bars($("outcome"), OUT.map(([l, c], i) => [l, m.o[i], c]));
+  bars($("soon"), [["Releases within 1 s", m.s, "ink"]]);
+  $("opts").innerHTML = (m.op || []).slice(0, 4).map(([pid, pr, ar]) => `<tr><td><span class="shirt" style="background:${teamCol(pid)};min-width:24px;height:22px;font-size:12px">${shirt(pid)}</span> ${P(pid).name || ""}</td><td class="r num">${Math.round(pr * 100)}%</td><td class="r num">${Math.round(ar * 100)}%</td></tr>`).join("");
+}
+function pct(a, q) { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(q * s.length))]; }
+function drawEngine() {
+  const m = cur; if (!m) return;
+  const L = R.latency; const p50 = L && !live ? L.p50 : pct(msHist, .5), p95 = L && !live ? L.p95 : pct(msHist, .95);
+  $("msNow").textContent = m.c != null ? m.ms.toFixed(1) + " ms" : "idle";
+  $("msP50").textContent = isNaN(p50) ? "–" : p50.toFixed(1) + " ms"; $("msP95").textContent = isNaN(p95) ? "–" : p95.toFixed(1) + " ms";
+  const [ctx, w, h] = fitCanvas($("spark")); ctx.clearRect(0, 0, w, h);
+  const a = msHist.slice(-150), top = 10;
+  ctx.strokeStyle = tok.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, h - 1); ctx.lineTo(w, h - 1); ctx.stroke();
+  if (a.length > 1) { ctx.strokeStyle = tok.ink; ctx.lineWidth = 1.5; ctx.beginPath();
+    a.forEach((v, i) => { const X = i / 149 * w, Y = h - 2 - Math.min(1, v / top) * (h - 8); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); }
+  ctx.fillStyle = tok.muted; ctx.font = "500 11px 'Overpass Mono', monospace"; ctx.textAlign = "right"; ctx.textBaseline = "top"; ctx.fillText("0 to 10 ms · last 15 s", w - 2, 2);
+}
+
+/* ---------- calls vs what happened ---------- */
+const byFrame = new Map();
+function callFor(e) {
+  for (let f = Math.max(e.s, e.e - 5); f >= e.s; f--) { const m = byFrame.get(f); if (m && m.c === e.pid && m.op) return m; }
+  for (let f = e.e; f > e.e - 5 && f >= e.s; f--) { const m = byFrame.get(f); if (m && m.c === e.pid && m.op) return m; }
+  return null;
+}
+let callRows = [];
+function prepCalls() {
+  callRows = EV.filter((e) => e.end === "pass" && e.to != null).map((e) => { const m = callFor(e); if (!m) return null;
+    const top = m.op[0], hitIdx = m.op.findIndex((o) => o[0] === e.to);
+    return { e, m, top, hit: top[0] === e.to, top3: hitIdx >= 0 && hitIdx < 3, arr: hitIdx >= 0 ? m.op[hitIdx][2] : null }; }).filter(Boolean);
+}
+function drawCalls() {
+  if (live || !EV.length) return; const f = cur ? cur.f : 0, done = callRows.filter((c) => c.e.e < f);
+  const n = done.length, hit = done.filter((c) => c.hit).length, t3 = done.filter((c) => c.top3).length;
+  $("tally").innerHTML = `<div><b>${n}</b><span>passes so far</span></div><div><b>${n ? Math.round(hit / n * 100) : 0}%</b><span>top option right</span></div><div><b>${n ? Math.round(t3 / n * 100) : 0}%</b><span>in top 3</span></div>`;
+  $("calls").innerHTML = done.slice(-60).reverse().map((c) => { const m = byFrame.get(c.e.e) || c.m;
+    const res = c.e.ok == null ? "pass" : c.e.ok ? "pass, completed" : "pass, did not arrive";
+    return `<tr><td class="num">${fmtClock(m).split("  ")[0]}</td><td><span class="shirt" style="background:${teamCol(c.e.pid)};min-width:24px;height:22px;font-size:12px">${shirt(c.e.pid)}</span> ${P(c.e.pid).name || ""}</td>
+      <td>${res} to #${shirt(c.e.to)}</td><td class="num">#${shirt(c.top[0])} · ${Math.round(c.top[1] * 100)}%</td><td class="num">${c.arr == null ? "–" : Math.round(c.arr * 100) + "%"}</td>
+      <td class="${c.hit ? "hit" : "miss"}">${c.hit ? "Yes" : c.top3 ? "No, 2nd or 3rd" : "No"}</td></tr>`; }).join("") ||
+    `<tr><td colspan="6" class="empty">No completed passes yet in this stretch.</td></tr>`;
+}
+
+/* ---------- header ---------- */
+function drawStrip() {
+  const t = R.roster.teams, m = cur;
+  $("strip").innerHTML = `<span><small>${live ? "Feed" : "Recording"}</small><b>${live ? '<i class="live-dot on"></i>Live' : '<i class="live-dot"></i>Replay'}</b></span>` +
+    `<span><small>${SRC.id === "gsr" && !live ? "Clip" : "Match"}</small><b><i class="dotsw" style="background:var(--home)"></i>${t.home.short || t.home.name} <span style="color:var(--muted)">v</span> <i class="dotsw" style="background:var(--away)"></i>${t.away.short || t.away.name}</b></span>` +
+    `<span><small>Clock</small><b class="num" style="font-family:var(--display)">${fmtClock(m)}</b></span>` +
+    `<span><small>Feed</small><b>${R.fps} Hz</b></span>`;
+  $("lgHomeName").textContent = t.home.name; $("lgAwayName").textContent = t.away.name;
+}
+
+function render() { readTokens(); drawStrip(); drawStage(); drawSheet(); drawEngine(); drawCalls(); }
+function setFrame(i) { if (!FR.length) return; i = Math.max(0, Math.min(FR.length - 1, i)); const changed = i !== idx || !cur; idx = i; cur = FR[idx];
+  if (changed && cur.c != null) { msHist.push(cur.ms); if (msHist.length > 600) msHist.shift(); }
+  $("scrub").value = idx; $("pos").textContent = mmss(idx / R.fps); render(); }
+
+/* ---------- clock ---------- */
+let last = 0, acc = 0;
+function loop(ts) {
+  if (!live && FR.length) {
+    if (SRC.video) { if (!vid.paused || vid.seeking) { const i = Math.min(FR.length - 1, Math.round(vid.currentTime * R.fps)); if (i !== idx) setFrame(i); else if (view === "cast") drawStage(); } }
+    else if (playing) { const dt = last ? ts - last : 0; acc += dt * speed; const step = 1000 / R.fps; let i = idx, moved = false;
+      while (acc >= step) { acc -= step; i = (i + 1) % FR.length; moved = true; if (i === 0) msHist = []; }
+      if (moved) setFrame(i); } }
+  last = ts; requestAnimationFrame(loop);
+}
+$("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "Pause" : "Play"; if (SRC.video) playing ? vid.play().catch(() => {}) : vid.pause(); };
+$("speed").onchange = (e) => { speed = +e.target.value; vid.playbackRate = speed; };
+$("scrub").oninput = (e) => { msHist = []; if (SRC.video) vid.currentTime = (+e.target.value + .5) / R.fps; setFrame(+e.target.value); };
+vid.addEventListener("ended", () => { vid.currentTime = 0; msHist = []; if (playing) vid.play().catch(() => {}); });
+function setView(v) { view = v; $("vBoard").setAttribute("aria-pressed", v === "board"); $("vCast").setAttribute("aria-pressed", v === "cast"); CAM.ok = false; render(); }
+$("vBoard").onclick = () => setView("board"); $("vCast").onclick = () => setView("cast");
+
+/* ---------- sources ---------- */
+$("source").innerHTML = SOURCES.map((s) => `<option value="${s.id}">${s.label}</option>`).join("");
+$("source").onchange = (e) => loadSource(SOURCES.find((s) => s.id === e.target.value));
+function loadSource(src) {
+  SRC = src; vid.pause(); CAM.ok = false; msHist = []; byFrame.clear();
+  const p = cache[src.id] || fetch(src.file).then((r) => { if (!r.ok) throw new Error(src.file); return r.json(); });
+  cache[src.id] = p;
+  return p.then((data) => {
+    if (SRC !== src) return;
+    R = data; FR = data.frames; EV = data.events || []; FR.forEach((m) => byFrame.set(m.f, m)); prepCalls();
+    $("callsSec").hidden = !EV.length; $("gsrNote").hidden = !!EV.length;
+    $("scrub").max = FR.length - 1; $("engineMode").textContent = "measured on the recording";
+    $("engineNote").textContent = `A new frame arrives every 100 ms. Over ${data.latency.n.toLocaleString()} frames with someone on the ball, reading the frame, building the features and running the model took ${data.latency.p50.toFixed(1)} ms at the median and ${data.latency.max.toFixed(1)} ms at worst, on one CPU thread. This page replays that run's output.`;
+    let s = FR.findIndex((m, i) => i > 30 && m.op && m.o && m.o[0] > .7 && m.op[0][1] > .5); s = Math.max(0, s);
+    if (src.video) { vid.src = src.video; vid.playbackRate = speed; vid.currentTime = (s + .5) / R.fps; if (playing) vid.play().catch(() => {}); }
+    idx = -1; setFrame(s);
+  });
+}
+function startLive(r) {
+  live = true; R = { roster: r.roster, fps: r.fps, latency: null };
+  $("controls").hidden = true; $("callsSec").hidden = true; $("engineMode").textContent = "measured live";
+  $("source").innerHTML = `<option>Live feed · match ${r.roster.match}</option>`; $("source").disabled = true;
+  $("engineNote").textContent = "A new frame arrives every 100 ms. Processing time covers reading the frame, building the features and running the model on one CPU thread.";
+  const es = new EventSource("stream");
+  es.onmessage = (ev) => { cur = JSON.parse(ev.data); if (cur.c != null) { msHist.push(cur.ms); if (msHist.length > 600) msHist.shift(); } render(); };
+  es.onerror = () => { $("who").innerHTML = '<span class="empty">The feed stopped. Restart live_demo.py to continue.</span>'; };
+  render();
+}
+fetch("roster.json").then((r) => r.ok ? r.json() : null).catch(() => null).then((r) => {
+  if (r && r.live) return startLive(r);
+  return loadSource(SOURCES[0]).then(() => requestAnimationFrame(loop));
+}).catch((e) => { document.querySelector(".wrap").insertAdjacentHTML("afterbegin", `<p class="note">The recording could not be loaded (${e.message}).</p>`); });
+window.addEventListener("resize", () => R && render());
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => R && render());
+new MutationObserver(() => R && render()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+})();
+</script>
