@@ -12,6 +12,7 @@
   --accent: #15191d; --accent-ink: #ffffff;
   --board: #ffffff; --board-line: #a3adb6; --mark: #15191d; --cam: rgba(21,25,29,.05);
   --home: #1d5bbf; --away: #cc3626; --pass: #c98100; --good: #17895a; --bad: #cc3626;
+  --s-model: #1d5bbf; --s-sc: #b06f00; --s-near: #7b4fc4; --heat: 29, 91, 191;
   --display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
   --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
   --mono: "Overpass Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -21,12 +22,14 @@
   --accent: #edf0ea; --accent-ink: #131917;
   --board: #1e2a25; --board-line: rgba(237,240,234,.5); --mark: #f3f5ef; --cam: rgba(237,240,234,.05);
   --home: #6fa3f2; --away: #f2806b; --pass: #ffd23f; --good: #42c98f; --bad: #f2806b;
+  --s-model: #4f8be0; --s-sc: #b8890f; --s-near: #9a76e0; --heat: 111, 163, 242;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #131917; --surface: #19211e; --surface-2: #232d29; --ink: #edf0ea; --muted: #9ea8a2; --line: #2f3a35;
   --accent: #edf0ea; --accent-ink: #131917;
   --board: #1e2a25; --board-line: rgba(237,240,234,.5); --mark: #f3f5ef; --cam: rgba(237,240,234,.05);
   --home: #6fa3f2; --away: #f2806b; --pass: #ffd23f; --good: #42c98f; --bad: #f2806b;
+  --s-model: #4f8be0; --s-sc: #b8890f; --s-near: #9a76e0; --heat: 111, 163, 242;
   color-scheme: dark; }
 
 * { box-sizing: border-box; }
@@ -107,7 +110,8 @@ table.calls thead th { font: 700 13px var(--body); color: var(--muted); border-b
 footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
 .viewbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 12px; }
 .viewbar label { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; min-width: 0; }
-.viewbar select { max-width: 100%; }
+.viewbar label { flex: 1 1 260px; }
+.viewbar select { min-width: 0; width: 100%; max-width: 520px; }
 .seg { display: inline-flex; border: 1.5px solid var(--ink); border-radius: 4px; overflow: hidden; }
 .seg button { border: 0; border-radius: 0; background: transparent; border-left: 1.5px solid var(--ink); }
 .seg button:first-child { border-left: 0; }
@@ -116,6 +120,40 @@ footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line)
 .stage.cast { aspect-ratio: 16 / 9; background: #0b0f0d; border-color: #0b0f0d; }
 .stage video, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .stage .tag { position: absolute; left: 10px; bottom: 10px; font: 500 12px var(--mono); color: #fff; background: rgba(0,0,0,.55); padding: 4px 8px; border-radius: 2px; pointer-events: none; }
+.sec-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 8px 20px; margin-bottom: 14px; }
+.sec-head .note { margin-top: 6px; }
+.flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; align-items: stretch; }
+.stage-col { display: grid; gap: 8px; align-content: start; padding: 0 22px 0 0; position: relative; min-width: 0; }
+.stage-col:not(:last-child)::after { content: "→"; position: absolute; right: 2px; top: 34px; font: 600 18px var(--mono); color: var(--muted); }
+.stage-col h4 { margin: 0 0 2px; font: 800 17px/1 var(--display); text-transform: uppercase; letter-spacing: .03em; }
+.stage-col .what { font-size: 13px; color: var(--muted); }
+.box { border: 1.5px solid var(--line); border-radius: 3px; padding: 8px 10px; background: var(--surface); display: grid; gap: 3px; min-width: 0; }
+.box b { font-size: 14px; }
+.box .v { font: 500 13px/1.4 var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+.box .d { font-size: 13px; color: var(--muted); }
+.box.hot { border-color: var(--pass); }
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 3px; margin-bottom: 22px; }
+.kpis div { padding: 10px 14px; border-left: 1px solid var(--line); display: grid; gap: 2px; min-width: 0; }
+.kpis div:first-child { border-left: 0; }
+.kpis b { font: 600 26px/1.1 var(--mono); }
+.kpis span { font-size: 14px; }
+.kpis small { font-size: 13px; color: var(--muted); }
+.charts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
+.chart { min-width: 0; display: grid; gap: 8px; align-content: start; position: relative; }
+.chart h3 { margin: 0; font: 800 20px/1.05 var(--display); text-transform: uppercase; letter-spacing: .03em; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.keys { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; color: var(--muted); }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 3px; padding: 6px 9px; font: 500 13px/1.45 var(--mono); color: var(--ink); box-shadow: 0 2px 10px rgba(0,0,0,.12); white-space: nowrap; z-index: 2; }
+table.mx { border-collapse: separate; border-spacing: 2px; font-size: 14px; }
+table.mx th, table.mx td { padding: 8px 10px; text-align: center; }
+table.mx th { font: 700 13px var(--body); color: var(--muted); }
+table.mx td { font: 500 14px var(--mono); border-radius: 2px; }
+table.plain { width: 100%; border-collapse: collapse; font-size: 15px; }
+table.plain th, table.plain td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+table.plain th { font: 700 13px var(--body); color: var(--muted); border-bottom: 1.5px solid var(--ink); }
+table.plain td.r, table.plain th.r { text-align: right; }
+@media (max-width: 1100px) { .flow { grid-template-columns: minmax(0, 1fr); gap: 18px; } .stage-col { padding: 0; } .stage-col:not(:last-child)::after { content: "↓"; right: auto; left: 0; top: auto; bottom: -18px; } }
+@media (max-width: 980px) { .charts { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpis div:nth-child(odd) { border-left: 0; } .kpis div { border-top: 1px solid var(--line); } }
 @media (max-width: 980px) { .main { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 520px) { .controls { grid-template-columns: auto 1fr; } .controls .wide { grid-column: 1 / -1; } .strip > span { padding: 4px 10px; } }
 </style>
@@ -185,21 +223,80 @@ footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line)
     </aside>
   </section>
 
+  <section id="modelSec">
+    <div class="sec-head">
+      <div>
+        <h2>How the model works</h2>
+        <p class="note">One forward pass of the possession model for the frame on screen. Every box shows this frame's values, so the numbers change as play goes on.</p>
+      </div>
+      <span class="note num" id="modelFrame"></span>
+    </div>
+    <div class="flow" id="flow">
+      <div class="stage-col"><h4>1 · Read the feed</h4><span class="what">What the model sees at this frame</span>
+        <div class="box"><b>Player on the ball</b><span class="v" id="fCar">–</span><span class="d">last 2 s of positions (20 frames)</span></div>
+        <div class="box"><b>Ball</b><span class="v" id="fBall">–</span><span class="d">last 2 s, with height</span></div>
+        <div class="box"><b>Everyone else</b><span class="v" id="fOthers">–</span><span class="d">position, speed, team, goalkeeper, on camera</span></div>
+        <div class="box"><b>Turn the pitch</b><span class="d">Put the carrier at the centre and make their team attack to the right, so every situation looks alike to the model.</span></div>
+      </div>
+      <div class="stage-col"><h4>2 · Encode</h4><span class="what">Turn each input into a vector of 96 numbers</span>
+        <div class="box"><b>GRU, 2 layers</b><span class="d">Reads the carrier's and the ball's 2 s, frame by frame, and sums up how the carrier is moving with the ball.</span></div>
+        <div class="box"><b>Small network per player</b><span class="d">One vector per other player from where they are relative to the carrier and how they move.</span></div>
+      </div>
+      <div class="stage-col"><h4>3 · Compare players</h4><span class="what">Transformer, 2 layers, 4 attention heads</span>
+        <div class="box"><b>Attention</b><span class="v" id="fTok">–</span><span class="d">Every player's vector looks at every other one: who is open, who is marked, who is in the passing lane. This is where context enters.</span></div>
+      </div>
+      <div class="stage-col"><h4>4 · Predict</h4><span class="what">Four outputs, trained together</span>
+        <div class="box"><b>How the possession ends</b><span class="v" id="fOut">–</span></div>
+        <div class="box"><b>Lets go within 1 s</b><span class="v" id="fSoon">–</span></div>
+        <div class="box"><b>Who gets a pass</b><span class="v" id="fRec">–</span><span class="d">one score per teammate, they add up to 100%</span></div>
+        <div class="box"><b>Does it arrive</b><span class="v" id="fArr">–</span></div>
+      </div>
+      <div class="stage-col"><h4>5 · Draw</h4><span class="what">What you see on the board</span>
+        <div class="box hot"><b>Yellow arrow</b><span class="v" id="fArrow">–</span><span class="d">= chance of a pass × chance this teammate gets it. Drawn when 5% or more.</span></div>
+        <div class="box"><b>Time taken</b><span class="v" id="fMs">–</span><span class="d">300k parameters, one CPU thread, budget 100 ms per frame</span></div>
+      </div>
+    </div>
+  </section>
+
   <section id="callsSec">
     <div class="calls-head">
       <div>
         <h2>Calls vs what happened</h2>
-        <p class="note">For every pass, the model's call 0.5 s before the ball left the player's foot, next to SkillCorner's event record. Rows appear as play passes them.</p>
+        <p class="note">This recording. For every possession, the model's call 0.5 s before it ended, next to SkillCorner's event record. Rows appear as play passes them.</p>
       </div>
       <div class="tally" id="tally"></div>
     </div>
     <div class="tablewrap">
       <table class="calls">
-        <thead><tr><th>Clock</th><th>Player</th><th>What happened</th><th>Model's top option</th><th>Arrives (model)</th><th>Right receiver?</th></tr></thead>
+        <thead><tr><th>Clock</th><th>Player</th><th>What happened</th><th>Model's call</th><th>Ending right?</th><th>Top receiver</th><th>Receiver right?</th></tr></thead>
         <tbody id="calls"></tbody>
       </table>
     </div>
   </section>
+  <section id="scoreSec">
+    <div class="sec-head">
+      <div>
+        <h2>Scorecard</h2>
+        <p class="note">All 2,109 passes and 41,235 frames with someone on the ball in the 3 held-out test matches, which the model never saw in training.</p>
+      </div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="charts">
+      <div class="chart" id="cTime"><h3>Who gets the pass, by time before it</h3>
+        <p class="note">Share of passes where the top-ranked teammate was the one targeted. SkillCorner makes one call per possession, so its line is close to flat.</p>
+        <div class="keys" id="kTime"></div><svg id="svgTime" viewBox="0 0 560 300" role="img" aria-label="Receiver accuracy by seconds before the pass"></svg></div>
+      <div class="chart" id="cCal"><h3>Does the pass arrive: predicted vs actual</h3>
+        <p class="note">Passes grouped by predicted chance of arriving. On the diagonal, a 70% call comes true 70% of the time.</p>
+        <div class="keys" id="kCal"></div><svg id="svgCal" viewBox="0 0 560 300" role="img" aria-label="Calibration of pass completion"></svg></div>
+      <div class="chart"><h3>How possessions end: actual vs predicted</h3>
+        <p class="note">Every frame with someone on the ball. Rows are what happened, columns what the model called; each row adds up to 100%.</p>
+        <div class="tablewrap" style="max-height:none"><table class="mx" id="mx"></table></div></div>
+      <div class="chart"><h3>By match</h3>
+        <p class="note">Same metrics for each test match separately.</p>
+        <div class="tablewrap" style="max-height:none"><table class="plain" id="perMatch"></table></div></div>
+    </div>
+  </section>
+
   <p class="note" id="gsrNote" hidden>This clip has no event record, so there is no calls table. The model was trained on SkillCorner feeds, where players outside the camera view are estimated; in GSR clips only the players on screen are known, so expect less reliable pass options when teammates are off camera.</p>
 
   <footer id="foot">Full match: SkillCorner open data (A-League 2024/25), used with credit to SkillCorner; the model never saw this match in training. GSR clip: SoccerNet Game State Reconstruction (SNGS-021, labels v1.3).</footer>
@@ -210,7 +307,7 @@ footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line)
 const $ = (id) => document.getElementById(id);
 const tok = {};
 function readTokens() { const cs = getComputedStyle(document.documentElement);
-  for (const k of ["bg","surface-2","ink","muted","line","board","board-line","mark","cam","home","away","pass","good","bad"]) tok[k] = cs.getPropertyValue("--" + k).trim(); }
+  for (const k of ["bg","surface-2","ink","muted","line","board","board-line","mark","cam","home","away","pass","good","bad","s-model","s-sc","s-near"]) tok[k] = cs.getPropertyValue("--" + k).trim(); }
 const SOURCES = [
   { id: "match", label: "Full match · Wellington Phoenix v Melbourne Victory (tracking)", file: "replay.json" },
   { id: "gsr", label: "GSR clip SNGS-021 · real broadcast video (30 s)", file: "replay_gsr.json", video: "broadcast_gsr.mp4" },
@@ -394,28 +491,113 @@ function drawEngine() {
 
 /* ---------- calls vs what happened ---------- */
 const byFrame = new Map();
+const END = { pass: 0, possession_loss: 1, shot: 2 }, END_TXT = ["pass", "lost it", "shot"];
 function callFor(e) {
-  for (let f = Math.max(e.s, e.e - 5); f >= e.s; f--) { const m = byFrame.get(f); if (m && m.c === e.pid && m.op) return m; }
-  for (let f = e.e; f > e.e - 5 && f >= e.s; f--) { const m = byFrame.get(f); if (m && m.c === e.pid && m.op) return m; }
+  for (let f = Math.max(e.s, e.e - 5); f >= e.s; f--) { const m = byFrame.get(f); if (m && m.c === e.pid && m.o) return m; }
+  for (let f = e.e; f > e.e - 5 && f >= e.s; f--) { const m = byFrame.get(f); if (m && m.c === e.pid && m.o) return m; }
   return null;
 }
 let callRows = [];
 function prepCalls() {
-  callRows = EV.filter((e) => e.end === "pass" && e.to != null).map((e) => { const m = callFor(e); if (!m) return null;
-    const top = m.op[0], hitIdx = m.op.findIndex((o) => o[0] === e.to);
-    return { e, m, top, hit: top[0] === e.to, top3: hitIdx >= 0 && hitIdx < 3, arr: hitIdx >= 0 ? m.op[hitIdx][2] : null }; }).filter(Boolean);
+  callRows = EV.filter((e) => e.end in END).map((e) => { const m = callFor(e); if (!m) return null;
+    const a = END[e.end], call = m.o.indexOf(Math.max(...m.o)), top = m.op && m.op[0];
+    const hitIdx = e.to != null && m.op ? m.op.findIndex((o) => o[0] === e.to) : -1;
+    return { e, m, a, call, endOk: call === a, top, isPass: a === 0 && e.to != null, hit: !!top && top[0] === e.to, top3: hitIdx >= 0 && hitIdx < 3 }; }).filter(Boolean);
 }
 function drawCalls() {
   if (live || !EV.length) return; const f = cur ? cur.f : 0, done = callRows.filter((c) => c.e.e < f);
-  const n = done.length, hit = done.filter((c) => c.hit).length, t3 = done.filter((c) => c.top3).length;
-  $("tally").innerHTML = `<div><b>${n}</b><span>passes so far</span></div><div><b>${n ? Math.round(hit / n * 100) : 0}%</b><span>top option right</span></div><div><b>${n ? Math.round(t3 / n * 100) : 0}%</b><span>in top 3</span></div>`;
-  $("calls").innerHTML = done.slice(-60).reverse().map((c) => { const m = byFrame.get(c.e.e) || c.m;
-    const res = c.e.ok == null ? "pass" : c.e.ok ? "pass, completed" : "pass, did not arrive";
+  const n = done.length, endOk = done.filter((c) => c.endOk).length, ps = done.filter((c) => c.isPass), hit = ps.filter((c) => c.hit).length, t3 = ps.filter((c) => c.top3).length;
+  const P_ = (a, b) => b ? Math.round(a / b * 100) + "%" : "–";
+  $("tally").innerHTML = `<div><b>${n}</b><span>possessions</span></div><div><b>${P_(endOk, n)}</b><span>ending called right</span></div>` +
+    `<div><b>${ps.length}</b><span>passes</span></div><div><b>${P_(hit, ps.length)}</b><span>receiver right</span></div><div><b>${P_(t3, ps.length)}</b><span>receiver in top 3</span></div>`;
+  $("calls").innerHTML = done.slice(-80).reverse().map((c) => { const m = byFrame.get(c.e.e) || c.m;
+    const what = c.a === 0 ? (c.e.to != null ? "pass to #" + shirt(c.e.to) + (c.e.ok == null ? "" : c.e.ok ? ", arrived" : ", did not arrive") : "pass") : END_TXT[c.a];
+    const yes = (ok) => `<td class="${ok ? "hit" : "miss"}">${ok ? "Yes" : "No"}</td>`;
     return `<tr><td class="num">${fmtClock(m).split("  ")[0]}</td><td><span class="shirt" style="background:${teamCol(c.e.pid)};min-width:24px;height:22px;font-size:12px">${shirt(c.e.pid)}</span> ${P(c.e.pid).name || ""}</td>
-      <td>${res} to #${shirt(c.e.to)}</td><td class="num">#${shirt(c.top[0])} · ${Math.round(c.top[1] * 100)}%</td><td class="num">${c.arr == null ? "–" : Math.round(c.arr * 100) + "%"}</td>
-      <td class="${c.hit ? "hit" : "miss"}">${c.hit ? "Yes" : c.top3 ? "No, 2nd or 3rd" : "No"}</td></tr>`; }).join("") ||
-    `<tr><td colspan="6" class="empty">No completed passes yet in this stretch.</td></tr>`;
+      <td>${what}</td><td class="num">${OUT[c.call][0]} ${Math.round(c.m.o[c.call] * 100)}%</td>${yes(c.endOk)}
+      <td class="num">${c.top ? "#" + shirt(c.top[0]) + " · " + Math.round(c.top[1] * 100) + "%" : "–"}</td>${c.isPass ? `<td class="${c.hit ? "hit" : "miss"}">${c.hit ? "Yes" : c.top3 ? "No, 2nd or 3rd" : "No"}</td>` : '<td class="muted">–</td>'}</tr>`; }).join("") ||
+    `<tr><td colspan="7" class="empty">No finished possessions yet in this stretch.</td></tr>`;
 }
+
+/* ---------- how the model works (live values) ---------- */
+function drawModel() {
+  const m = cur; $("modelFrame").textContent = m ? "Frame " + m.f + " · " + fmtClock(m) : "";
+  const set = (id, v) => { $(id).textContent = v; };
+  if (!m || m.c == null) { for (const id of ["fCar", "fBall", "fOthers", "fTok", "fOut", "fSoon", "fRec", "fArr", "fArrow", "fMs"]) set(id, "–");
+    set("fCar", "Nobody has the ball, so the model waits"); return; }
+  const p = P(m.c), on = m.pl.filter((x) => x[3]).length;
+  set("fCar", "#" + shirt(m.c) + " " + (p.name || "") + (R.roster.teams[p.team] ? " · " + (R.roster.teams[p.team].short || "") : ""));
+  set("fBall", m.b ? `x ${m.b[0]} m, y ${m.b[1]} m, height ${m.b[2]} m` : "not seen this frame");
+  set("fOthers", `${m.pl.length - 1} players · ${Math.max(0, on - (m.pl.find((x) => x[0] === m.c && x[3]) ? 1 : 0))} on camera`);
+  set("fTok", `${m.pl.length} vectors (carrier + ${m.pl.length - 1} players)`);
+  set("fOut", OUT.map(([l], i) => `${l} ${Math.round(m.o[i] * 100)}%`).join(" · "));
+  set("fSoon", Math.round(m.s * 100) + "%");
+  set("fRec", (m.op || []).slice(0, 3).map(([pid, pr]) => `#${shirt(pid)} ${Math.round(pr * 100)}%`).join(" · ") || "–");
+  set("fArr", (m.op || []).slice(0, 3).map(([pid, , ar]) => `#${shirt(pid)} ${Math.round(ar * 100)}%`).join(" · ") || "–");
+  const t = m.op && m.op[0]; set("fArrow", t ? `#${shirt(t[0])}: ${Math.round(m.o[0] * 100)}% × ${Math.round(t[1] * 100)}% = ${Math.round(m.o[0] * t[1] * 100)}%` : "–");
+  set("fMs", m.ms.toFixed(1) + " ms this frame");
+}
+
+/* ---------- scorecard (test matches) ---------- */
+let SC = null;
+function tipAt(box, html, x, y) { let t = box.querySelector(".tip"); if (!t) { t = document.createElement("div"); t.className = "tip"; box.appendChild(t); }
+  if (html == null) { t.hidden = true; return; } t.hidden = false; t.innerHTML = html; const bw = box.clientWidth;
+  t.style.left = Math.min(bw - t.offsetWidth - 4, Math.max(0, x + 12)) + "px"; t.style.top = (y - 10) + "px"; }
+function lineChart(svgId, boxId, keyId, opt) {
+  const svg = $(svgId), W = 560, H = 300, L = 44, Rr = 14, T = 12, B = 38;
+  const X = (v) => L + (v - opt.x0) / (opt.x1 - opt.x0) * (W - L - Rr), Y = (v) => T + (1 - (v - opt.y0) / (opt.y1 - opt.y0)) * (H - T - B);
+  let g = "";
+  for (const v of opt.yt) g += `<line x1="${L}" x2="${W - Rr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" fill="var(--muted)" font-family="Overpass Mono, monospace" font-size="11">${opt.yf(v)}</text>`;
+  for (const v of opt.xt) g += `<text x="${X(v)}" y="${H - B + 18}" text-anchor="middle" fill="var(--muted)" font-family="Overpass Mono, monospace" font-size="11">${opt.xf(v)}</text>`;
+  g += `<text x="${W - Rr}" y="${H - 4}" text-anchor="end" fill="var(--muted)" font-family="Atkinson Hyperlegible, sans-serif" font-size="12">${opt.xl}</text>`;
+  if (opt.diag) g += `<line x1="${X(0)}" y1="${Y(0)}" x2="${X(1)}" y2="${Y(1)}" stroke="var(--muted)" stroke-dasharray="4 4" stroke-width="1"/>`;
+  for (const s of opt.series) { const pts = s.pts.filter((p) => p[1] != null);
+    g += `<polyline points="${pts.map((p) => X(p[0]) + "," + Y(p[1])).join(" ")}" fill="none" stroke="var(${s.c})" stroke-width="2" stroke-linejoin="round" ${s.dash ? 'stroke-dasharray="6 4"' : ""}/>`;
+    for (const p of pts) g += `<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="${s.r || 3.2}" fill="var(${s.c})" stroke="var(--bg)" stroke-width="2"/>`; }
+  g += `<line id="${svgId}x" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-width="1" visibility="hidden"/>`;
+  g += `<rect x="${L}" y="${T}" width="${W - L - Rr}" height="${H - T - B}" fill="transparent" id="${svgId}h"/>`;
+  svg.innerHTML = g;
+  $(keyId).innerHTML = opt.series.map((s) => `<span><i class="sw ln" style="background:var(${s.c})"></i>${s.name}</span>`).join("");
+  const hit = $(svgId + "h"), cross = $(svgId + "x"), box = $(boxId);
+  const xs = [...new Set(opt.series.flatMap((s) => s.pts.map((p) => p[0])))].sort((a, b) => a - b);
+  const move = (ev) => { const r = svg.getBoundingClientRect(), vx = (ev.clientX - r.left) / r.width * W;
+    let best = xs[0]; for (const v of xs) if (Math.abs(X(v) - vx) < Math.abs(X(best) - vx)) best = v;
+    cross.setAttribute("x1", X(best)); cross.setAttribute("x2", X(best)); cross.setAttribute("visibility", "visible");
+    const br = box.getBoundingClientRect();
+    tipAt(box, opt.tip(best), ev.clientX - br.left, ev.clientY - br.top); };
+  hit.addEventListener("pointermove", move); hit.addEventListener("pointerleave", () => { cross.setAttribute("visibility", "hidden"); tipAt(box, null); });
+}
+function drawScore() {
+  if (!SC) return; const m = SC.metrics, pc = (v) => (v * 100).toFixed(1) + "%";
+  $("kpis").innerHTML = [
+    [pc(m.receiver.release_frame.top1), "Right receiver, just before the pass", `SkillCorner ${pc(m.receiver.release_frame.skillcorner_option_top1)} · nearest teammate ${pc(m.receiver.release_frame.nearest_teammate_top1)}`],
+    [pc(m.receiver.release_frame.top3), "Receiver in the top 3", "random pick of 3 would be about 30%"],
+    [m.pass_arrives.model_auc_same_passes.toFixed(3), "Pass arrives, AUC", `SkillCorner xPass ${m.pass_arrives.skillcorner_xpass_auc.toFixed(3)} on the same ${m.pass_arrives.n_with_skillcorner_xpass.toLocaleString()} passes`],
+    [pc(m.outcome.balanced_accuracy), "Ending called right (balanced)", "pass, loss and shot weighted equally; chance 33.3%"],
+    [m.release_within_1s_auc.toFixed(3), "Lets go within 1 s, AUC", "0.5 is a coin flip"],
+  ].map(([b, s, t]) => `<div><b>${b}</b><span>${s}</span><small>${t}</small></div>`).join("");
+  const bt = SC.receiver_by_time;
+  lineChart("svgTime", "cTime", "kTime", { x0: 0, x1: 2, y0: 0, y1: 1, xt: [0, .5, 1, 1.5, 2], yt: [0, .25, .5, .75, 1], xf: (v) => v + " s", yf: (v) => Math.round(v * 100) + "%",
+    xl: "seconds before the pass", series: [
+      { name: "Our model", c: "--s-model", pts: bt.map((r) => [r.s, r.model]) },
+      { name: "SkillCorner passing-option model", c: "--s-sc", pts: bt.map((r) => [r.s, r.skillcorner]), dash: true },
+      { name: "Nearest teammate", c: "--s-near", pts: bt.map((r) => [r.s, r.nearest]) }],
+    tip: (x) => { const r = bt.find((q) => q.s === x); return `<b>${x.toFixed(1)} s before</b> · ${r.n.toLocaleString()} passes<br>Our model ${pc(r.model)} (top 3 ${pc(r.model_top3)})<br>SkillCorner ${r.skillcorner == null ? "–" : pc(r.skillcorner)}<br>Nearest teammate ${pc(r.nearest)}`; } });
+  const cm = SC.calibration.model, cs = SC.calibration.skillcorner;
+  lineChart("svgCal", "cCal", "kCal", { x0: 0, x1: 1, y0: 0, y1: 1, xt: [0, .25, .5, .75, 1], yt: [0, .25, .5, .75, 1], xf: (v) => Math.round(v * 100) + "%", yf: (v) => Math.round(v * 100) + "%",
+    xl: "predicted chance the pass arrives", diag: true, series: [
+      { name: "Our model", c: "--s-model", pts: cm.map((r) => [+r.pred.toFixed(3), r.actual]) },
+      { name: "SkillCorner xPass", c: "--s-sc", pts: cs.map((r) => [+r.pred.toFixed(3), r.actual]), dash: true }],
+    tip: (x) => { const a = cm.find((r) => +r.pred.toFixed(3) === x), b = cs.find((r) => +r.pred.toFixed(3) === x), r = a || b, who = a ? "Our model" : "SkillCorner xPass";
+      return `<b>${who}</b><br>predicted ${pc(r.pred)}<br>actually arrived ${pc(r.actual)}<br>${r.n.toLocaleString()} passes`; } });
+  const C = SC.confusion, lab = C.labels;
+  $("mx").innerHTML = `<tr><th></th>${lab.map((l) => `<th>Called ${l.toLowerCase()}</th>`).join("")}<th>Frames</th></tr>` + C.counts.map((row, i) => { const n = row.reduce((a, b) => a + b, 0);
+    return `<tr><th style="text-align:right">${lab[i]}</th>${row.map((v, j) => { const f = v / n; return `<td style="background:rgba(var(--heat), ${(.08 + f * .8).toFixed(2)});color:${f > .55 ? "#fff" : "var(--ink)"};font-weight:${i === j ? 700 : 500}" title="${v.toLocaleString()} frames">${Math.round(f * 100)}%</td>`; }).join("")}<td class="muted">${n.toLocaleString()}</td></tr>`; }).join("");
+  const names = { "1886347": "Auckland FC v Newcastle Jets", "1996436": "Auckland FC v Macarthur FC", "2011166": "Wellington Phoenix v Melbourne Victory" };
+  $("perMatch").innerHTML = `<thead><tr><th>Match</th><th class="r">Passes</th><th class="r">Right receiver</th><th class="r">Arrives AUC</th><th class="r">Ending (balanced)</th></tr></thead><tbody>` +
+    SC.per_match.map((r) => `<tr><td>${names[r.match] || r.match} <span class="muted num">${r.match}</span></td><td class="r num">${r.passes}</td><td class="r num">${pc(r.receiver_top1)}</td><td class="r num">${r.arrive_auc.toFixed(3)}</td><td class="r num">${pc(r.balanced_accuracy)}</td></tr>`).join("") + "</tbody>";
+}
+fetch("scorecard.json").then((r) => r.ok ? r.json() : null).catch(() => null).then((d) => { SC = d; if (!d) $("scoreSec").hidden = true; else drawScore(); });
 
 /* ---------- header ---------- */
 function drawStrip() {
@@ -427,7 +609,7 @@ function drawStrip() {
   $("lgHomeName").textContent = t.home.name; $("lgAwayName").textContent = t.away.name;
 }
 
-function render() { readTokens(); drawStrip(); drawStage(); drawSheet(); drawEngine(); drawCalls(); }
+function render() { readTokens(); drawStrip(); drawStage(); drawSheet(); drawEngine(); drawCalls(); drawModel(); }
 function setFrame(i) { if (!FR.length) return; i = Math.max(0, Math.min(FR.length - 1, i)); const changed = i !== idx || !cur; idx = i; cur = FR[idx];
   if (changed && cur.c != null) { msHist.push(cur.ms); if (msHist.length > 600) msHist.shift(); }
   $("scrub").value = idx; $("pos").textContent = mmss(idx / R.fps); render(); }

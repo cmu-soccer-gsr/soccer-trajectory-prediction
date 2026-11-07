@@ -39,6 +39,16 @@ python scripts/record_gsr_clip.py --explorer explorer --out live/replay_gsr.json
 
 The GSR clip only has the players on screen (the SkillCorner feed the model was trained on also estimates the ones off screen), and it has no event record, so there is no calls table for it.
 
+## Sections
+
+- **How the model works**: the five steps of one forward pass (read the feed, encode, compare players, predict, draw), filled with the values for the frame on screen.
+- **Calls vs what happened**: for every possession in the recording, the model's call 0.5 s before it ended next to SkillCorner's event record, with running tallies.
+- **Scorecard**: test-set results on the 3 held-out matches: headline numbers with baselines, receiver accuracy by time before the pass, calibration of "pass arrives" against SkillCorner xPass, the outcome confusion matrix and a per-match table. Made with:
+
+```bash
+python scripts/export_scorecard.py --cache-dir results/skillcorner_cache --out live/scorecard.json
+```
+
 ## Files
 
 | File | What it is |
@@ -46,6 +56,7 @@ The GSR clip only has the players on screen (the SkillCorner feed the model was 
 | `index.html` | The board. Uses the live stream when served by `live_demo.py`, otherwise loads `replay.json`. |
 | `replay.json` | 8 minutes of match 2011166 (from 16:30 in the feed), made with the command above. |
 | `replay_gsr.json` | SNGS-021 run through the same engine at 10 Hz, with a homography per frame. |
+| `scorecard.json` | Test-set scorecard from `export_scorecard.py`. |
 | `broadcast_gsr.mp4` | The clip's video (git-ignored; recreate with `record_gsr_clip.py --video`). |
 
 Data: SkillCorner open data (A-League 2024/25), used with credit to SkillCorner.
