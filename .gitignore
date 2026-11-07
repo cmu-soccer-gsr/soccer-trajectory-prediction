@@ -240,4 +240,5 @@ data/
 **/pretrained_models/
 *.pklz
 *.mp4
+results/skillcorner_cache/
 jersey/crops.jpg
