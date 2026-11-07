@@ -118,14 +118,21 @@ def canon(team: str) -> float:
     return 1.0 if team == "left" else -1.0
 
 
-def build_samples(seqs: list[Seq], stride: int = 1):
-    """Feature arrays for every labelled frame with 2 s of carrier history."""
+def build_samples(seqs: list[Seq], stride: int = 1, require_label: bool = True):
+    """Feature arrays for every labelled frame with 2 s of carrier history.
+
+    With require_label=False every frame with a carrier is kept (act = -1 when unlabelled),
+    which is what the explorer export uses."""
     X_car, X_ball, X_ag, M_ag, T_ag, Y_act, Y_rec, Y_fut, ABS, META = [], [], [], [], [], [], [], [], [], []
     for s in seqs:
         for t in range(PAST - 1, s.n - 1, stride):
+            if s.carrier[t] < 0:
+                continue
             lab = label_frame(s, t)
             if lab is None:
-                continue
+                if require_label:
+                    continue
+                lab = (None, -1, -1)
             c = s.carrier[t]
             hist = s.pos[c][t - PAST + 1:t + 1]
             if np.isnan(hist).any() or np.linalg.norm(np.diff(hist, axis=0), axis=1).max() > 1.0:
@@ -154,7 +161,7 @@ def build_samples(seqs: list[Seq], stride: int = 1):
             if lab[0] == "pass" and lab[1] in tids:
                 rec = int(np.flatnonzero(tids == lab[1])[0])
             X_car.append(car); X_ball.append(ball); X_ag.append(ag); M_ag.append(msk); T_ag.append(tids)
-            Y_act.append(ACTIONS.index(lab[0])); Y_rec.append(rec); Y_fut.append(fut)
+            Y_act.append(ACTIONS.index(lab[0]) if lab[0] else -1); Y_rec.append(rec); Y_fut.append(fut)
             ABS.append(o * k); META.append((s.name, t, c, lab[2]))
     f32 = lambda a: np.asarray(a, np.float32)
     return {"car": f32(X_car), "ball": f32(X_ball), "ag": f32(X_ag), "mask": np.asarray(M_ag), "tids": np.asarray(T_ag),

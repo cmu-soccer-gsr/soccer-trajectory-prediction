@@ -3,123 +3,143 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Extra+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=Red+Hat+Mono:wght@400;500;600&display=swap">
 <style>
-/* Layout: broadcast-truck console. Video + minimap on top, track timeline as a full-width strip,
-   then the gap lab and the test-set results. One accent (pitch green); team and method colors are data. */
+/* Layout: a coach's tactics board. Light = whiteboard with marker colors, dark = chalkboard.
+   Video and board sit side by side; everything below reads as notes on the same board, separated by space, not boxes. */
 :root {
-  --bg: #f3f5f1; --surface: #ffffff; --surface-2: #e9ede7; --ink: #141917; --muted: #59625d; --line: #d3d9d1;
-  --accent: #0f7f55; --accent-ink: #ffffff;
-  --pitch: #2d6844; --pitch-line: rgba(255,255,255,.78); --pitch-grid: rgba(255,255,255,.12);
-  --left: #2a78d6; --right: #e0612b; --ref: #c48600; --dot: #ffffff;
-  --m-linear: #868c88; --m-spline: #14a06e; --m-kalman: #e0612b; --m-gru: #2a78d6; --truth: #141917;
-  --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
-  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --r: 10px;
+  --bg: #f6f7f8; --surface: #ffffff; --surface-2: #e9edf0; --ink: #15191d; --muted: #59626b; --line: #d3d9df;
+  --accent: #15191d; --accent-ink: #ffffff;
+  --board: #ffffff; --board-line: #a3adb6; --board-grid: #e6eaee; --mark: #15191d;
+  --left: #1d5bbf; --right: #cc3626; --ref: #a87400; --pass: #d08a00;
+  --m-linear: #8a929a; --m-spline: #17895a; --m-kalman: #7b4fc4; --m-gru: #1d5bbf;
+  --display: "Saira Extra Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Red Hat Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #0e1211; --surface: #161b1a; --surface-2: #1d2422; --ink: #edf1ee; --muted: #9aa49f; --line: #29322f;
-  --accent: #33c58b; --accent-ink: #06130d;
-  --pitch: #1d4a31; --pitch-line: rgba(255,255,255,.7); --pitch-grid: rgba(255,255,255,.08);
-  --left: #4b94ec; --right: #f07a4a; --ref: #e3aa2c; --dot: #f2f2f2;
-  --m-linear: #9aa09c; --m-spline: #2fc58a; --m-kalman: #f07a4a; --m-gru: #4b94ec; --truth: #ffffff;
+  --bg: #131917; --surface: #19211e; --surface-2: #232d29; --ink: #edf0ea; --muted: #9ea8a2; --line: #2f3a35;
+  --accent: #edf0ea; --accent-ink: #131917;
+  --board: #1e2a25; --board-line: rgba(237,240,234,.55); --board-grid: rgba(237,240,234,.08); --mark: #f3f5ef;
+  --left: #6fa3f2; --right: #f2806b; --ref: #e3b443; --pass: #ffd23f;
+  --m-linear: #a2aaa5; --m-spline: #42c98f; --m-kalman: #b393f0; --m-gru: #6fa3f2;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
-  --bg: #0e1211; --surface: #161b1a; --surface-2: #1d2422; --ink: #edf1ee; --muted: #9aa49f; --line: #29322f;
-  --accent: #33c58b; --accent-ink: #06130d;
-  --pitch: #1d4a31; --pitch-line: rgba(255,255,255,.7); --pitch-grid: rgba(255,255,255,.08);
-  --left: #4b94ec; --right: #f07a4a; --ref: #e3aa2c; --dot: #f2f2f2;
-  --m-linear: #9aa09c; --m-spline: #2fc58a; --m-kalman: #f07a4a; --m-gru: #4b94ec; --truth: #ffffff;
+  --bg: #131917; --surface: #19211e; --surface-2: #232d29; --ink: #edf0ea; --muted: #9ea8a2; --line: #2f3a35;
+  --accent: #edf0ea; --accent-ink: #131917;
+  --board: #1e2a25; --board-line: rgba(237,240,234,.55); --board-grid: rgba(237,240,234,.08); --mark: #f3f5ef;
+  --left: #6fa3f2; --right: #f2806b; --ref: #e3b443; --pass: #ffd23f;
+  --m-linear: #a2aaa5; --m-spline: #42c98f; --m-kalman: #b393f0; --m-gru: #6fa3f2;
   color-scheme: dark; }
 
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body);
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--body);
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 20px 48px; }
-.wrap { max-width: 1440px; margin: 0 auto; display: grid; gap: 20px; }
-h1, h2 { font-family: var(--display); font-weight: 700; letter-spacing: .01em; text-wrap: balance; margin: 0; line-height: 1.05; }
-h1 { font-size: clamp(30px, 4vw, 44px); }
-h2 { font-size: 26px; }
-.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  padding-block: 18px 56px; }
+.wrap { max-width: 1440px; margin: 0 auto; display: grid; gap: 44px; }
+h1, h2 { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .02em; text-wrap: balance; margin: 0; line-height: 1; }
+h1 { font-size: clamp(34px, 4.4vw, 52px); }
+h2 { font-size: 30px; }
+.eyebrow { font-size: 14px; color: var(--muted); }
 .muted { color: var(--muted); }
 .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
-header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
-.meta { display: flex; flex-wrap: wrap; gap: 8px; }
-.tag { font: 500 12px/1 var(--mono); padding: 7px 10px; border-radius: 999px; background: var(--surface-2); color: var(--ink); }
+/* scoreboard header */
+header.top { display: flex; flex-wrap: wrap; align-items: stretch; justify-content: space-between; gap: 14px 28px;
+  padding-bottom: 16px; border-bottom: 3px solid var(--ink); }
+header.top .ttl { display: grid; gap: 6px; align-content: end; }
+.board-strip { display: flex; flex-wrap: wrap; align-items: stretch; font-family: var(--mono); font-size: 13px; }
+.board-strip > span { display: grid; gap: 2px; padding: 4px 14px; border-left: 1px solid var(--line); }
+.board-strip > span:first-child { border-left: 0; padding-left: 0; }
+.board-strip b { font: 700 22px/1 var(--display); letter-spacing: .03em; text-transform: uppercase; }
+.board-strip small { color: var(--muted); font-size: 12px; }
+.teams { display: flex; align-items: center; gap: 10px; font: 700 22px/1 var(--display); text-transform: uppercase; letter-spacing: .03em; }
+.teams i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
 
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; min-width: 0; }
-.panel-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; margin-bottom: 12px; }
+section { min-width: 0; }
+.panel { min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 6px 20px; margin-bottom: 14px; }
+.panel-head .note { max-width: 62ch; }
 
-.grid-top { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 20px; }
-.video-wrap { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; }
+.grid-top { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 28px; }
+.video-wrap { position: relative; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; border-radius: 3px; overflow: hidden; background: #000; }
 .video-wrap video, .video-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.video-wrap canvas { cursor: pointer; }
+.video-wrap canvas { cursor: crosshair; }
 .vmsg { position: absolute; inset: 0; display: grid; place-items: center; color: #ddd; font: 14px var(--mono); padding: 16px; text-align: center; }
 
-.controls { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px 14px; margin-top: 12px; }
-.controls .row2 { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
-button, select { font: 500 14px var(--body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line);
-  border-radius: 8px; padding: 7px 12px; cursor: pointer; }
-button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
-button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-input[type=range] { width: 100%; accent-color: var(--accent); }
-label.chk { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; cursor: pointer; }
-input[type=checkbox] { accent-color: var(--accent); }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.seg button { border: 0; border-radius: 0; background: transparent; }
+.controls { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px 14px; margin-top: 10px; }
+.controls .row2 { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+button, select { font: 600 14px var(--body); color: var(--ink); background: var(--surface); border: 1.5px solid var(--line);
+  border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+button:hover, select:hover { border-color: var(--muted); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); min-width: 76px; }
+button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid var(--left); outline-offset: 2px; }
+input[type=range] { width: 100%; accent-color: var(--ink); }
+label.chk { display: inline-flex; gap: 6px; align-items: center; font-size: 15px; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--ink); width: 15px; height: 15px; }
+.seg { display: inline-flex; border: 1.5px solid var(--ink); border-radius: 4px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; border-left: 1.5px solid var(--ink); }
+.seg button:first-child { border-left: 0; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
-.fc-row { padding-top: 10px; border-top: 1px solid var(--line); }
-.fc-label { font: 500 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.probs { display: grid; gap: 6px; }
-.prob { display: grid; grid-template-columns: 74px 1fr 44px; align-items: center; gap: 8px; font-size: 13px; }
-.prob .bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
-.prob .bar i { display: block; height: 100%; border-radius: 4px; }
+.fc-row { padding-top: 12px; margin-top: 2px; border-top: 1px solid var(--line); }
+.fc-label { font: 700 18px/1 var(--display); letter-spacing: .03em; text-transform: uppercase; }
+.probs { display: grid; gap: 7px; }
+.prob { display: grid; grid-template-columns: 82px 1fr 44px; align-items: center; gap: 10px; font-size: 15px; }
+.prob .bar { height: 10px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
+.prob .bar i { display: block; height: 100%; }
 
-#mini { width: 100%; aspect-ratio: 112 / 75; display: block; border-radius: 8px; cursor: pointer; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 13px; color: var(--muted); }
-.sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
-.sw.sq { border-radius: 2px; }
-.sw.ln { width: 18px; height: 3px; border-radius: 2px; vertical-align: 3px; }
-.card { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
-.kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.kv div { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; }
-.kv b { display: block; font: 600 20px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
-.kv span { font-size: 12px; color: var(--muted); }
+#mini { width: 100%; max-width: 100%; aspect-ratio: 112 / 75; display: block; border-radius: 3px; cursor: crosshair; border: 1.5px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 14px; color: var(--muted); }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+.sw.sq { border-radius: 1px; }
+.sw.ln { width: 18px; height: 3px; border-radius: 0; vertical-align: 4px; }
+.card { margin-top: 18px; padding-top: 16px; border-top: 3px solid var(--ink); display: grid; gap: 10px; }
+.kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 3px; }
+.kv div { padding: 8px 12px; border-left: 1px solid var(--line); }
+.kv div:first-child { border-left: 0; }
+.kv b { display: block; font: 600 20px/1.15 var(--mono); font-variant-numeric: tabular-nums; }
+.kv span { font-size: 13px; color: var(--muted); }
 
 #tl { width: 100%; display: block; cursor: pointer; }
 
-.grid-lab { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-#zoom { width: 100%; aspect-ratio: 1 / 1; max-height: 560px; display: block; border-radius: 8px; }
-.lab-side { display: grid; gap: 14px; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
-th { font: 500 12px var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.grid-lab { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+#zoom { width: 100%; max-width: 100%; aspect-ratio: 1 / 1; max-height: 560px; display: block; border-radius: 3px; border: 1.5px solid var(--line); }
+.lab-side { display: grid; gap: 16px; min-width: 0; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); }
+thead th { font: 600 13px var(--body); color: var(--muted); border-bottom: 1.5px solid var(--ink); }
 td.r, th.r { text-align: right; }
-tr.best td { font-weight: 600; }
-.pill { font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); margin-left: 6px; vertical-align: 1px; }
-.status { font: 600 13px var(--mono); padding: 6px 10px; border-radius: 8px; background: var(--surface-2); display: inline-block; }
+td.num, td .num { font-size: 14px; }
+tr.best td { font-weight: 700; }
+.pill { font: 600 11px/1 var(--mono); padding: 3px 6px; border-radius: 2px; border: 1px solid var(--ink); margin-left: 8px; vertical-align: 1px; }
+.status { font: 700 17px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; padding: 6px 10px; border-radius: 2px; border: 1.5px solid var(--ink); display: inline-block; }
 .status.gap { background: var(--ink); color: var(--bg); }
-.note { font-size: 13px; color: var(--muted); max-width: 70ch; }
-.tablewrap { overflow-x: auto; }
-.grid-res { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.note { font-size: 14px; color: var(--muted); max-width: 70ch; }
+.tablewrap { overflow-x: auto; min-width: 0; }
+.grid-res { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
 #chart { width: 100%; height: auto; display: block; }
-footer { font-size: 13px; color: var(--muted); }
+footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+
+.act-bars .prob { grid-template-columns: 104px 1fr 44px; }
+.rx { display: flex; flex-wrap: wrap; gap: 6px; }
+.rx span { font: 500 13px var(--mono); padding: 4px 8px; border-radius: 2px; border: 1px solid var(--line); }
+.happened { font-size: 15px; padding: 8px 12px; border-left: 3px solid var(--pass); background: var(--surface-2); }
+.grid-act { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; align-items: start; }
 
 @media (max-width: 980px) {
-  .grid-top, .grid-lab, .grid-res { grid-template-columns: minmax(0, 1fr); }
+  .grid-top, .grid-lab, .grid-res, .grid-act { grid-template-columns: minmax(0, 1fr); }
 }
+@media (max-width: 520px) { .board-strip > span { padding: 4px 10px; } h2 { font-size: 26px; } }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
 
 <div class="wrap">
   <header class="top">
-    <div>
-      <div class="eyebrow">SoccerNet Game State Reconstruction · CMU 11-785 Group 15</div>
+    <div class="ttl">
+      <div class="eyebrow">SoccerNet Game State Reconstruction, CMU 11-785 Group 15</div>
       <h1>GSR Clip Explorer</h1>
     </div>
-    <div class="meta" id="meta"></div>
+    <div class="board-strip" id="meta"></div>
   </header>
 
   <section class="grid-top">
@@ -171,8 +191,9 @@ footer { font-size: 13px; color: var(--muted); }
         <span><i class="sw" style="background:var(--right)"></i>Right team</span>
         <span><i class="sw" style="background:var(--ref)"></i>Referee</span>
         <span><i class="sw sq" style="background:var(--muted)"></i>Goalkeeper</span>
-        <span><i class="sw" style="background:#fff;outline:1.5px solid #111"></i>Ball</span>
-        <span><i class="sw ln" style="background:var(--ink)"></i>Predicted paths (thicker = more likely)</span>
+        <span><i class="sw" style="background:var(--bg);outline:1.5px solid var(--mark)"></i>Ball</span>
+        <span><i class="sw ln" style="background:var(--ink)"></i>Predicted paths, thicker is more likely</span>
+        <span><i class="sw ln" style="background:var(--pass)"></i>Pass options (ball carrier)</span>
         <span><i class="sw ln" style="background:repeating-linear-gradient(90deg,var(--ink) 0 4px,transparent 4px 7px)"></i>What happened</span>
       </div>
       <div class="card" id="card"></div>
@@ -185,6 +206,24 @@ footer { font-size: 13px; color: var(--muted); }
       <span class="note">Each bar is a stretch where the player is labeled on screen; the thin dark line inside marks when they have the ball. Breaks are players leaving the camera view or going unlabeled. Click to jump in time and to select a player.</span>
     </div>
     <canvas id="tl" tabindex="0" aria-label="Track timeline"></canvas>
+  </section>
+
+  <section class="panel" id="actPanel" hidden>
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow">Ball carrier · next 1 s · test split</div>
+        <h2>Pass or dribble</h2>
+      </div>
+      <span class="note" id="actN"></span>
+    </div>
+    <div class="grid-act">
+      <div class="tablewrap"><table id="atable"></table></div>
+      <div class="note" style="display:grid;gap:8px">
+        <p style="margin:0">For whoever has the ball, the model predicts what happens in the next second: they keep it (dribble), pass to a teammate, or lose it to an opponent. For a pass it scores every visible teammate, and it also predicts the carrier's own path.</p>
+        <p style="margin:0">Inputs: the carrier's and the ball's last 2 s, plus every visible player's position and velocity. A GRU encodes the history and a small transformer lets the carrier attend to the other players.</p>
+        <p style="margin:0">Labels come from the GSR ball positions: the carrier is the nearest player within 1.5 m of the ball. Receivers off screen at the moment of prediction cannot be scored.</p>
+      </div>
+    </div>
   </section>
 
   <section class="panel">
@@ -245,12 +284,14 @@ const METHOD_LABEL = { linear: "Linear", spline: "Cubic spline", kalman: "Kalman
 const S = { f: 0, sel: null, cond: "noisy", win: null, gapPlay: null, playing: false,
   boxes: true, lines: true, labels: true, truth: true, fc: "ball", actual: false };
 let ballPos = [], carrier = [];
-let C, I, R, F = null, tok = {};
+let C, I, R, F = null, A = null, tok = {};
+let BOARD = false; const mk = () => BOARD ? tok.mark : "#fff", halo = () => BOARD ? tok.board : "rgba(0,0,0,.6)";
+const ACT_LABEL = ["Dribble", "Pass", "Lose the ball"];
 let trackPos = {}, order = [], runs = {}, winsByTrack = {};
 
 function readTokens() {
   const cs = getComputedStyle(document.documentElement);
-  for (const k of ["bg","surface","surface-2","ink","muted","line","accent","pitch","pitch-line","pitch-grid","left","right","ref","dot",
+  for (const k of ["bg","surface","surface-2","ink","muted","line","accent","pitch","pitch-line","pitch-grid","left","right","ref","pass","board","board-line","board-grid","mark",
                    "m-linear","m-spline","m-kalman","m-gru","truth"]) tok[k] = cs.getPropertyValue("--" + k).trim();
 }
 const colorOf = (t) => { const m = C.tracks[t]; if (!m) return tok.muted;
@@ -270,7 +311,7 @@ function fitCanvas(cv) {
   return [ctx, r.width, r.height];
 }
 function chip(ctx, x, y, text, bg) {
-  ctx.font = "600 11px 'IBM Plex Mono', monospace";
+  ctx.font = "600 11px 'Red Hat Mono', monospace";
   const w = ctx.measureText(text).width + 8;
   ctx.fillStyle = bg; roundRect(ctx, x - w / 2, y - 15, w, 15, 3); ctx.fill();
   ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.fillText(text, x, y - 4);
@@ -300,6 +341,7 @@ function prep() {
         const d = Math.hypot(x - b[0], y - b[1]); if (t === cur && d < 2.5) { best = t; bd = -1; break; } if (d < bd) { bd = d; best = t; } } }
     carrier[f] = cur = best;
   }
+  if (A && A.carrier.length === C.n) for (let f = 0; f < C.n; f++) carrier[f] = A.carrier[f] >= 0 ? A.carrier[f] : null;
   I.windows.forEach((w, i) => (winsByTrack[w.t] ||= []).push(i));
   for (const t in winsByTrack) winsByTrack[t].sort((a, b) => I.windows[a].f0 - I.windows[b].f0);
 }
@@ -351,7 +393,7 @@ function homo(f) { const h = F && F.homography[f]; if (!h) return null;
   return (x, y) => { const w = h[6] * x + h[7] * y + 1; return [(h[0] * x + h[1] * y + h[2]) / w, (h[3] * x + h[4] * y + h[5]) / w]; }; }
 function drawPaths(ctx, fc, map, col, emph) {
   ctx.lineCap = "round"; ctx.lineJoin = "round";
-  if (S.actual && fc.actual) { ctx.setLineDash([5, 5]); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = emph ? 2.5 : 1.5; ctx.beginPath();
+  if (S.actual && fc.actual) { ctx.setLineDash([5, 5]); ctx.strokeStyle = mk(); ctx.lineWidth = emph ? 2.5 : 1.5; ctx.beginPath();
     fc.actual.forEach((p, i) => { const [X, Y] = map(p); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); ctx.setLineDash([]); }
   fc.modes.forEach((m, i) => {
     ctx.globalAlpha = Math.max(.3, Math.min(1, m.p * 1.6)); ctx.strokeStyle = col; ctx.lineWidth = (emph ? 2 : 1.2) + m.p * (emph ? 5 : 3);
@@ -359,11 +401,69 @@ function drawPaths(ctx, fc, map, col, emph) {
     const [ex, ey] = map(m.pts[m.pts.length - 1]); const [px, py] = map(m.pts[m.pts.length - 2]);
     const ang = Math.atan2(ey - py, ex - px), L = emph ? 9 : 6; ctx.fillStyle = col; ctx.beginPath();
     ctx.moveTo(ex, ey); ctx.lineTo(ex - L * Math.cos(ang - .45), ey - L * Math.sin(ang - .45)); ctx.lineTo(ex - L * Math.cos(ang + .45), ey - L * Math.sin(ang + .45)); ctx.closePath(); ctx.fill();
-    if (emph && i === 0) { ctx.globalAlpha = 1; ctx.font = "600 11px 'IBM Plex Mono', monospace"; ctx.textAlign = "left";
-      ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.6)"; const s = Math.round(m.p * 100) + "%"; ctx.strokeText(s, ex + 6, ey - 4); ctx.fillStyle = "#fff"; ctx.fillText(s, ex + 6, ey - 4); }
+    if (emph && i === 0 && !fc.nolabel) { ctx.globalAlpha = 1; ctx.font = "600 11px 'Red Hat Mono', monospace"; ctx.textAlign = "left";
+      ctx.lineWidth = 3; ctx.strokeStyle = halo(); const s = Math.round(m.p * 100) + "%"; ctx.strokeText(s, ex + 6, ey - 4); ctx.fillStyle = mk(); ctx.fillText(s, ex + 6, ey - 4); }
   });
   ctx.globalAlpha = 1;
 }
+
+/* ---------------- pass / dribble ---------------- */
+function actAt(f) {
+  if (!A || S.fc !== "ball") return null; const e = A.frames[f]; if (!e) return null;
+  const [c, pa, mates, pp, paths, lab] = e; const tp = trackPos[c], o = tp && tp.get(f); if (!o) return null;
+  const modes = paths.map((arr, i) => ({ p: pp[i] / 100, pts: [o].concat(Array.from({ length: arr.length / 2 }, (_, j) => [o[0] + arr[2 * j] / 100, o[1] + arr[2 * j + 1] / 100])) }));
+  modes.sort((a, b) => b.p - a.p);
+  const actual = []; for (let j = 0; j <= A.horizon; j += A.step) { const q = tp.get(f + j); if (!q) break; actual.push(q); }
+  const P = pa.map((v) => v / 100);
+  const opts = mates.map(([t, p]) => ({ t, p: p / 100, joint: P[1] * p / 100, at: trackPos[t] && trackPos[t].get(f) })).filter((m) => m.at);
+  return { c, o, k: f, P, opts, modes, actual: actual.length === A.horizon / A.step + 1 ? actual : null,
+    label: lab ? { a: lab[0], rec: lab[1] >= 0 ? lab[1] : null, rel: lab[2] } : null };
+}
+function arrow(ctx, a, b, col, lw, dash) {
+  const ang = Math.atan2(b[1] - a[1], b[0] - a[0]), L = 6 + lw * 1.6, e = [b[0] - 9 * Math.cos(ang), b[1] - 9 * Math.sin(ang)];
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash || []);
+  ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(e[0], e[1]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(e[0], e[1]); ctx.lineTo(e[0] - L * Math.cos(ang - .45), e[1] - L * Math.sin(ang - .45));
+  ctx.lineTo(e[0] - L * Math.cos(ang + .45), e[1] - L * Math.sin(ang + .45)); ctx.closePath(); ctx.fill();
+}
+function tagText(ctx, x, y, s, col) { ctx.font = "600 11px 'Red Hat Mono', monospace"; ctx.textAlign = "center";
+  ctx.lineWidth = 3; ctx.strokeStyle = halo(); ctx.strokeText(s, x, y); ctx.fillStyle = col; ctx.fillText(s, x, y); }
+function drawAction(ctx, a, map) {
+  // carrier path fan, scaled down when a pass is likely
+  ctx.save(); ctx.globalAlpha = .4 + .6 * a.P[0];
+  drawPaths(ctx, { modes: a.modes, actual: null, nolabel: true }, map, colorOf(a.c), true); ctx.restore();
+  const o = map(a.o);
+  for (const m of a.opts) { if (m.joint < .04) continue;
+    const q = map(m.at); ctx.globalAlpha = Math.max(.45, Math.min(1, m.joint * 2.5));
+    arrow(ctx, o, q, BOARD ? tok.pass : "#ffd23f", 1.5 + m.joint * 9); ctx.globalAlpha = 1;
+    tagText(ctx, (o[0] + q[0]) / 2, (o[1] + q[1]) / 2 - 6, (labelOf(m.t) ? "#" + labelOf(m.t) + " " : "") + Math.round(m.joint * 100) + "%", BOARD ? tok.pass : "#ffd23f"); }
+  if (S.actual && a.label) {
+    if (a.label.a === 0 && a.actual) { ctx.setLineDash([5, 5]); ctx.strokeStyle = mk(); ctx.lineWidth = 2.5; ctx.beginPath();
+      a.actual.forEach((p, i) => { const [X, Y] = map(p); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); ctx.setLineDash([]); }
+    if (a.label.a === 1 && a.label.rec != null) { const q = trackPos[a.label.rec] && (trackPos[a.label.rec].get(a.label.rel + 1) || trackPos[a.label.rec].get(a.k));
+      if (q) arrow(ctx, o, map(q), mk(), 2.5, [6, 5]); }
+  }
+}
+function drawActHud(ctx, w, a) {
+  const rows = ACT_LABEL.map((l, i) => [l, a.P[i]]);
+  const x = 12, y = 12, bw = 214, bh = 22 + rows.length * 17 + (S.actual && a.label ? 18 : 0);
+  ctx.fillStyle = "rgba(10,14,12,.78)"; roundRect(ctx, x, y, bw, bh, 8); ctx.fill();
+  ctx.font = "500 10px 'Red Hat Mono', monospace"; ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.textAlign = "left";
+  ctx.fillText("NEXT 1 S · " + (labelOf(a.c) ? "#" + labelOf(a.c) : "BALL CARRIER"), x + 10, y + 15);
+  const best = a.P.indexOf(Math.max(...a.P));
+  rows.forEach(([l, p], i) => { const yy = y + 22 + i * 17;
+    ctx.font = (i === best ? "600 " : "500 ") + "12px 'Source Sans 3', sans-serif"; ctx.fillStyle = "#fff"; ctx.fillText(l, x + 10, yy + 10);
+    ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.fillRect(x + 104, yy + 3, 70, 7);
+    ctx.fillStyle = i === 1 ? "#ffd23f" : i === 0 ? colorOf(a.c) : "#ff6b6b"; ctx.fillRect(x + 104, yy + 3, 70 * p, 7);
+    ctx.font = "500 11px 'Red Hat Mono', monospace"; ctx.fillStyle = "#fff"; ctx.textAlign = "right"; ctx.fillText(Math.round(p * 100) + "%", x + bw - 10, yy + 10); ctx.textAlign = "left"; });
+  if (S.actual && a.label) { ctx.font = "500 11px 'Red Hat Mono', monospace"; ctx.fillStyle = "#fff";
+    ctx.fillText("Happened: " + happened(a), x + 10, y + bh - 8); }
+}
+function happened(a) { const l = a.label; if (!l) return "unclear";
+  if (l.a === 0) return "kept the ball";
+  const when = l.rel >= 0 ? " at " + ((l.rel + 1) / FPS).toFixed(1) + " s" : "";
+  if (l.a === 1) return "pass" + (l.rec != null && labelOf(l.rec) ? " to #" + labelOf(l.rec) : l.rec != null ? " to a teammate" : " (receiver off screen)") + when;
+  return "lost it" + when; }
 
 /* ---------------- broadcast overlay ---------------- */
 function drawOverlay() {
@@ -394,7 +494,9 @@ function drawOverlay() {
 function drawVideoForecasts(ctx, sx, sy) {
   if (S.fc === "off" || S.gapPlay) return; const H = homo(S.f); if (!H) return;
   const map = (p) => { const [u, v] = H(p[0], p[1]); return [u * sx, v * sy]; };
-  for (const [t] of C.frames[S.f]) { if (!showFc(t)) continue; const fc = fcFor(t, S.f); if (fc) drawPaths(ctx, fc, map, colorOf(t), t === focusPlayer()); }
+  const a = actAt(S.f);
+  for (const [t] of C.frames[S.f]) { if (!showFc(t) || (a && t === a.c)) continue; const fc = fcFor(t, S.f); if (fc) drawPaths(ctx, fc, map, colorOf(t), t === focusPlayer()); }
+  if (a) { drawAction(ctx, a, map); if (ctx.canvas.clientWidth >= 520) drawActHud(ctx, ctx.canvas.clientWidth, a); }
 }
 $("ov").addEventListener("click", (e) => {
   const r = e.currentTarget.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * C.width, y = (e.clientY - r.top) / r.height * C.height;
@@ -407,37 +509,40 @@ $("ov").addEventListener("click", (e) => {
 function pitchGeom(w, h) { const pad = 14, s = Math.min((w - 2 * pad) / 105, (h - 2 * pad) / 68);
   const ox = (w - 105 * s) / 2, oy = (h - 68 * s) / 2; return { s, P: (x, y) => [ox + (x + 52.5) * s, oy + (y + 34) * s] }; }
 function drawPitch(ctx, w, h, g) {
-  ctx.fillStyle = tok.pitch; roundRect(ctx, 0, 0, w, h, 8); ctx.fill();
-  ctx.strokeStyle = tok["pitch-line"]; ctx.lineWidth = 1.2; const { P, s } = g;
+  ctx.fillStyle = tok.board; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = tok["board-line"]; ctx.lineWidth = 1.5; const { P, s } = g;
   const L = (a, b, c, d) => { ctx.beginPath(); ctx.moveTo(...P(a, b)); ctx.lineTo(...P(c, d)); ctx.stroke(); };
   const [x0, y0] = P(-52.5, -34); ctx.strokeRect(x0, y0, 105 * s, 68 * s); L(0, -34, 0, 34);
   ctx.beginPath(); ctx.arc(...P(0, 0), 9.15 * s, 0, 7); ctx.stroke();
   for (const sg of [-1, 1]) { const gx = 52.5 * sg;
     for (const [d, hw] of [[16.5, 20.16], [5.5, 9.16]]) { const ix = gx - sg * d; L(gx, -hw, ix, -hw); L(ix, -hw, ix, hw); L(ix, hw, gx, hw); }
-    ctx.fillStyle = tok["pitch-line"]; ctx.beginPath(); ctx.arc(...P(gx - sg * 11, 0), 1.6, 0, 7); ctx.fill(); }
+    ctx.fillStyle = tok["board-line"]; ctx.beginPath(); ctx.arc(...P(gx - sg * 11, 0), 1.6, 0, 7); ctx.fill(); }
 }
 function drawMini() {
-  const [ctx, w, h] = fitCanvas($("mini")); const g = pitchGeom(w, h); drawPitch(ctx, w, h, g);
+  const [ctx, w, h] = fitCanvas($("mini")); const g = pitchGeom(w, h); BOARD = true; drawPitch(ctx, w, h, g);
   const f = S.f;
   for (const [t] of C.frames[f]) { const tp = trackPos[t]; if (!tp || !tp.has(f)) continue;
     ctx.beginPath(); let first = true;
     for (let k = Math.max(0, f - 50); k <= f; k++) { const p = tp.get(k); if (!p) { first = true; continue; }
       const [X, Y] = g.P(p[0], p[1]); first ? ctx.moveTo(X, Y) : ctx.lineTo(X, Y); first = false; }
     ctx.strokeStyle = colorOf(t); ctx.globalAlpha = .55; ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1; }
-  if (S.fc !== "off") for (const [t] of C.frames[f]) { if (!showFc(t)) continue; const fc = fcFor(t, f);
+  const a = actAt(f);
+  if (S.fc !== "off") for (const [t] of C.frames[f]) { if (!showFc(t) || (a && t === a.c)) continue; const fc = fcFor(t, f);
     if (fc) drawPaths(ctx, fc, (p) => g.P(p[0], p[1]), colorOf(t), t === focusPlayer()); }
+  if (a) drawAction(ctx, a, (p) => g.P(p[0], p[1]));
   for (const [t, , , , , x, y] of C.frames[f]) {
     if (x === null || C.tracks[t].role === "ball") continue;
     const [X, Y] = g.P(x, y); ctx.fillStyle = colorOf(t);
     if (C.tracks[t].role === "goalkeeper") { ctx.fillRect(X - 5, Y - 5, 10, 10); } else { ctx.beginPath(); ctx.arc(X, Y, 5.5, 0, 7); ctx.fill(); }
-    if (t === S.sel) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X, Y, 10, 0, 7); ctx.stroke(); }
+    if (t === S.sel) { ctx.strokeStyle = tok.mark; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X, Y, 10, 0, 7); ctx.stroke(); }
     if (S.labels && labelOf(t)) chip(ctx, X, Y - 7, labelOf(t), colorOf(t));
   }
-  if (ballPos[f]) { const [X, Y] = g.P(...ballPos[f]); ctx.fillStyle = "#fff"; ctx.strokeStyle = "#111"; ctx.lineWidth = 1.5;
+  if (ballPos[f]) { const [X, Y] = g.P(...ballPos[f]); ctx.fillStyle = tok.board; ctx.strokeStyle = tok.mark; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(X, Y, 4, 0, 7); ctx.fill(); ctx.stroke(); }
   if (S.win) { const w0 = I.windows[S.win]; const pts = winGT(w0); const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
     const [a, b] = g.P(Math.min(...xs) - 1, Math.min(...ys) - 1), [c, d] = g.P(Math.max(...xs) + 1, Math.max(...ys) + 1);
-    ctx.setLineDash([4, 3]); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(a, b, c - a, d - b); ctx.setLineDash([]); }
+    ctx.setLineDash([4, 3]); ctx.strokeStyle = tok.mark; ctx.lineWidth = 1; ctx.strokeRect(a, b, c - a, d - b); ctx.setLineDash([]); }
+  BOARD = false;
 }
 $("mini").addEventListener("click", (e) => {
   const cv = e.currentTarget, r = cv.getBoundingClientRect(), g = pitchGeom(r.width, r.height);
@@ -459,7 +564,7 @@ function drawCard() {
     <b>${nameOf(t)}</b><span class="muted num" style="margin-left:auto;font-size:12px">track ${t}</span></div>
     <div class="kv"><div><b>${(frames / FPS).toFixed(1)} s</b><span>labeled on screen</span></div>
     <div><b>${gaps}</b><span>gaps in the track</span></div>
-    <div><b>${on ? "yes" : "no"}</b><span>on screen now</span></div></div>` + fcCard(t);
+    <div><b>${on ? "yes" : "no"}</b><span>on screen now</span></div></div>` + (ballMode && actAt(S.f) ? actCard(actAt(S.f)) : fcCard(t));
   const fb = $("followBall"); if (fb) fb.onclick = () => setFc("ball");
 }
 function fcCard(t) {
@@ -476,13 +581,38 @@ function fcCard(t) {
     `</div>${err}<p class="note" style="margin:0">Predicted from this player's own last 2 s of movement. The model does not see the ball or other players yet.</p>`;
 }
 
+function actCard(a) {
+  const bars = ACT_LABEL.map((l, i) => `<div class="prob"><span>${l}</span><span class="bar"><i style="width:${Math.round(a.P[i] * 100)}%;background:${i === 1 ? "var(--pass)" : i === 0 ? colorOf(a.c) : "#e5484d"}"></i></span><span class="num" style="text-align:right">${Math.round(a.P[i] * 100)}%</span></div>`).join("");
+  const rx = a.opts.filter((m) => m.joint >= .02).slice(0, 4).map((m) => `<span><i class="sw" style="background:${colorOf(m.t)}"></i>${labelOf(m.t) ? "#" + labelOf(m.t) : "No. not labeled (track " + m.t + ")"} · ${Math.round(m.p * 100)}%</span>`).join("");
+  const hap = S.actual ? `<div class="happened"><b>What happened:</b> ${happened(a)}</div>` : "";
+  return `<div class="eyebrow" style="margin-top:4px">Next 1 s · from ${(a.k / FPS).toFixed(2)} s</div><div class="probs act-bars">${bars}</div>` +
+    (rx ? `<div class="eyebrow">If they pass, to whom</div><div class="rx">${rx}</div>` : "") + hap +
+    `<p class="note" style="margin:0">Uses the ball and every visible player. Yellow arrows on the video are pass options; the colored fan is the carrier's own path.</p>`;
+}
+function drawActPanel() {
+  if (!A || !A.metrics) return; const m = A.metrics.test, p = (v) => (v * 100).toFixed(1) + "%", cm = (v) => (v * 100).toFixed(0) + " cm";
+  $("actPanel").hidden = false;
+  $("actN").textContent = `${m.n.toLocaleString()} test frames with a ball carrier · ${m.receiver.n.toLocaleString()} passes to a visible teammate`;
+  const rows = [
+    ["Action accuracy", p(m.accuracy), p(m.majority_accuracy), "always dribble"],
+    ["Balanced accuracy (3 classes)", p(m.balanced_accuracy), "33.3%", "always dribble"],
+    ["Pass vs no pass, AUC", m.pass_auc.toFixed(3), "0.500", "chance"],
+    ["Receiver, top 1", p(m.receiver.top1), p(m.receiver.nearest_teammate_top1), "nearest teammate"],
+    ["Receiver, top 3", p(m.receiver.top3), p(Math.min(1, 3 / m.receiver.mean_visible_teammates)), "random 3 (approx.)"],
+    ["Carrier path, mean error*", cm(m.path.ade_forecaster ?? m.path.ade_top), cm(m.path.ade_cv), "constant velocity"],
+  ];
+  $("atable").innerHTML = `<thead><tr><th>Metric</th><th class="r">Model</th><th class="r">Baseline</th><th>Baseline is</th></tr></thead><tbody>` +
+    rows.map(([a, b, c, d]) => `<tr><td>${a}</td><td class="r num" style="font-weight:600">${b}</td><td class="r num">${c}</td><td class="muted">${d}</td></tr>`).join("") + "</tbody>"
+    + `<caption style="caption-side:bottom;text-align:left;padding-top:8px" class="note">Accuracy is below always-dribble because training weights the rarer pass and lose classes up; balanced accuracy is the fairer score. *The path on screen comes from the single-player forecaster, which beats this model's own path head on carriers (${cm(m.path.ade_top)}).</caption>`;
+}
+
 /* ---------------- timeline ---------------- */
 const TL = { left: 46, top: 18, row: 13 };
 function drawTimeline() {
   const cv = $("tl"); cv.style.height = (TL.top + order.length * TL.row + 26) + "px";
   const [ctx, w, h] = fitCanvas(cv); ctx.clearRect(0, 0, w, h);
   const x = (f) => TL.left + (w - TL.left - 8) * f / C.n, f = S.f;
-  ctx.font = "500 11px 'IBM Plex Mono', monospace"; ctx.textBaseline = "middle";
+  ctx.font = "500 11px 'Red Hat Mono', monospace"; ctx.textBaseline = "middle";
   order.forEach((t, i) => { const y = TL.top + i * TL.row;
     if (t === S.sel) { ctx.fillStyle = tok["surface-2"]; ctx.fillRect(0, y - 1, w, TL.row); }
     ctx.fillStyle = colorOf(t); ctx.textAlign = "right"; ctx.fillText(labelOf(t) || "–", TL.left - 8, y + TL.row / 2);
@@ -538,8 +668,8 @@ function drawLab() {
   const [ctx, w, h] = fitCanvas($("zoom")); ctx.clearRect(0, 0, w, h);
   const tb = $("ltable"), st = $("lstatus"), where = $("lwhere");
   if (S.sel === null || S.win === null) {
-    ctx.fillStyle = tok.pitch; roundRect(ctx, 0, 0, w, h, 8); ctx.fill();
-    ctx.fillStyle = "#fff"; ctx.font = "500 14px 'IBM Plex Sans', sans-serif"; ctx.textAlign = "center";
+    ctx.fillStyle = tok.board; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = tok.muted; ctx.font = "500 14px 'Source Sans 3', sans-serif"; ctx.textAlign = "center";
     ctx.fillText(S.sel === null ? "Select a player to test a gap." : "This player has no fully observed 3 s stretch.", w / 2, h / 2);
     tb.innerHTML = ""; st.textContent = "No window"; st.className = "status"; where.textContent = ""; return; }
   const win = I.windows[S.win], D = winData(win), gs = I.gapStart, ge = gs + I.gap;
@@ -551,22 +681,22 @@ function drawLab() {
   const half = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / 2 + .5;
   const s = Math.min(w, h) / (2 * half), ox = w / 2, oy = h / 2;
   const Z = (p) => [ox + (p[0] - cx) * s, oy + (p[1] - cy) * s];
-  ctx.fillStyle = tok.pitch; roundRect(ctx, 0, 0, w, h, 8); ctx.fill();
-  ctx.strokeStyle = tok["pitch-grid"]; ctx.lineWidth = 1;
+  ctx.fillStyle = tok.board; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = tok["board-grid"]; ctx.lineWidth = 1;
   for (let g = Math.ceil(cx - half * w / Math.min(w, h)); g < cx + half * w / Math.min(w, h); g++) { const [X] = Z([g, 0]); ctx.beginPath(); ctx.moveTo(X, 0); ctx.lineTo(X, h); ctx.stroke(); }
   for (let g = Math.ceil(cy - half * h / Math.min(w, h)); g < cy + half * h / Math.min(w, h); g++) { const [, Y] = Z([0, g]); ctx.beginPath(); ctx.moveTo(0, Y); ctx.lineTo(w, Y); ctx.stroke(); }
   // context dots: faint for the whole window, solid near the gap
   for (let k = 0; k < I.window; k++) { if (k >= gs && k < ge) continue; const [X, Y] = Z(D.obs[k]);
-    ctx.globalAlpha = ctxIdx.includes(k) ? 1 : .3; ctx.fillStyle = tok.dot; ctx.beginPath(); ctx.arc(X, Y, 4, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = ctxIdx.includes(k) ? 1 : .3; ctx.fillStyle = tok.mark; ctx.beginPath(); ctx.arc(X, Y, 3.5, 0, 7); ctx.fill(); }
   ctx.globalAlpha = 1;
   const line = (arr, col, lw) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineJoin = "round"; ctx.beginPath();
     arr.forEach((p, i) => { const [X, Y] = Z(p); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); };
-  if (S.truth) line(D.gt.slice(gs - 1, ge + 1), "#ffffff", 5);
+  if (S.truth) { ctx.globalAlpha = .28; line(D.gt.slice(gs - 1, ge + 1), tok.mark, 9); ctx.globalAlpha = 1; }
   for (const m of I.methods) line([D.obs[gs - 1], ...D.preds[m], D.obs[ge]], tok["m-" + m], 2.5);
   const kf = S.f - win.f0;
   if (kf >= gs && kf < ge) { for (const m of I.methods) { const [X, Y] = Z(D.preds[m][kf - gs]); ctx.fillStyle = tok["m-" + m]; ctx.beginPath(); ctx.arc(X, Y, 5, 0, 7); ctx.fill(); }
-    if (S.truth) { const [X, Y] = Z(D.gt[kf]); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X, Y, 8, 0, 7); ctx.stroke(); } }
-  ctx.fillStyle = "rgba(255,255,255,.75)"; ctx.font = "500 12px 'IBM Plex Mono', monospace"; ctx.textAlign = "left";
+    if (S.truth) { const [X, Y] = Z(D.gt[kf]); ctx.strokeStyle = tok.mark; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X, Y, 8, 0, 7); ctx.stroke(); } }
+  ctx.fillStyle = tok.muted; ctx.font = "500 12px 'Red Hat Mono', monospace"; ctx.textAlign = "left";
   ctx.fillText("grid = 1 m", 10, h - 10);
   // status + table
   const t0 = (win.f0 + gs) / FPS;
@@ -579,7 +709,7 @@ function drawLab() {
   tb.innerHTML = I.methods.map((m) => `<tr class="${m === best ? "best" : ""}"><td><i class="sw ln" style="background:var(--m-${m})"></i>${METHOD_LABEL[m]}${m === best ? '<span class="pill">best here</span>' : ""}</td>
     <td class="r num">${(D.errs[m].mean * 100).toFixed(1)} cm</td><td class="r num">${(D.errs[m].max * 100).toFixed(1)} cm</td>
     <td class="r num muted">${testAvg(m).toFixed(1)} cm</td></tr>`).join("") +
-    (S.truth ? `<tr><td colspan="4" class="muted" style="font-size:13px"><i class="sw ln" style="background:var(--truth);outline:1px solid var(--line)"></i>White line: ground truth. Dots: observed positions${S.cond === "noisy" ? " with noise" : ""}.</td></tr>` : "");
+    (S.truth ? `<tr><td colspan="4" class="muted" style="font-size:13px"><i class="sw ln" style="background:var(--mark);opacity:.3"></i>Wide grey band: ground truth. Dots: observed positions${S.cond === "noisy" ? " with noise" : ""}.</td></tr>` : "");
 }
 
 /* ---------------- results ---------------- */
@@ -601,10 +731,10 @@ function drawResults() {
   const X = (g) => L + (g - gaps[0]) / (gaps[gaps.length - 1] - gaps[0]) * (W - L - Rr), Y = (v) => T + (1 - v / ymax) * (H - T - B);
   let svg = "";
   const step = ymax <= 10 ? 2 : ymax <= 25 ? 5 : 10;
-  for (let v = 0; v <= ymax; v += step) svg += `<line x1="${L}" x2="${W - Rr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="11">${v}</text>`;
-  for (const g of gaps) svg += `<text x="${X(g)}" y="${H - B + 18}" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="11">${g} s</text>`;
-  svg += `<text x="${L}" y="${H - 6}" fill="var(--muted)" font-family="IBM Plex Sans, sans-serif" font-size="12">Gap length</text>`;
-  svg += `<text x="12" y="${T + 4}" fill="var(--muted)" font-family="IBM Plex Sans, sans-serif" font-size="12" transform="rotate(-90 12 ${T + 4})" text-anchor="end">cm</text>`;
+  for (let v = 0; v <= ymax; v += step) svg += `<line x1="${L}" x2="${W - Rr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" fill="var(--muted)" font-family="Red Hat Mono, monospace" font-size="11">${v}</text>`;
+  for (const g of gaps) svg += `<text x="${X(g)}" y="${H - B + 18}" text-anchor="middle" fill="var(--muted)" font-family="Red Hat Mono, monospace" font-size="11">${g} s</text>`;
+  svg += `<text x="${L}" y="${H - 6}" fill="var(--muted)" font-family="Source Sans 3, sans-serif" font-size="12">Gap length</text>`;
+  svg += `<text x="12" y="${T + 4}" fill="var(--muted)" font-family="Source Sans 3, sans-serif" font-size="12" transform="rotate(-90 12 ${T + 4})" text-anchor="end">cm</text>`;
   const ends = [];
   for (const m of methods) { const c = `var(--m-${m})`, pts = gaps.map((g) => val(m, g));
     const up = pts.map((p, i) => `${X(gaps[i])},${Y(p.ade_cm + p.ci_cm)}`), dn = pts.map((p, i) => `${X(gaps[i])},${Y(Math.max(0, p.ade_cm - p.ci_cm))}`).reverse();
@@ -613,7 +743,7 @@ function drawResults() {
     pts.forEach((p, i) => svg += `<circle cx="${X(gaps[i])}" cy="${Y(p.ade_cm)}" r="4" fill="${c}"><title>${METHOD_LABEL[m]} · ${gaps[i]} s · ${p.ade_cm.toFixed(1)} cm ± ${p.ci_cm.toFixed(1)}</title></circle>`);
     ends.push([m, Y(pts[pts.length - 1].ade_cm)]); }
   ends.sort((a, b) => a[1] - b[1]); for (let i = 1; i < ends.length; i++) if (ends[i][1] - ends[i - 1][1] < 15) ends[i][1] = ends[i - 1][1] + 15;
-  for (const [m, y] of ends) svg += `<text x="${W - Rr + 10}" y="${y + 4}" fill="var(--ink)" font-family="IBM Plex Sans, sans-serif" font-size="12">${METHOD_LABEL[m]}</text>`;
+  for (const [m, y] of ends) svg += `<text x="${W - Rr + 10}" y="${y + 4}" fill="var(--ink)" font-family="Source Sans 3, sans-serif" font-size="12">${METHOD_LABEL[m]}</text>`;
   $("chart").innerHTML = svg;
 }
 
@@ -621,17 +751,20 @@ function drawAll() { readTokens(); drawOverlay(); drawMini(); drawCard(); drawTi
 
 /* ---------------- boot ---------------- */
 Promise.all(["clip.json", "impute.json", "results.json"].map((u) => fetch(u).then((r) => { if (!r.ok) throw new Error(u); return r.json(); }))
-  .concat(fetch("forecast.json").then((r) => r.ok ? r.json() : null).catch(() => null)))
-  .then(([c, i, r, fcst]) => {
-    C = c; I = i; R = r; F = fcst; prep();
+  .concat(["forecast.json", "action.json"].map((u) => fetch(u).then((r) => r.ok ? r.json() : null).catch(() => null))))
+  .then(([c, i, r, fcst, act]) => {
+    C = c; I = i; R = r; F = fcst; A = act; prep(); drawActPanel();
     $("scrub").max = C.n - 1;
     const inf = C.info;
-    $("meta").innerHTML = [inf.name, inf.action_class, "Game time " + inf.game_time_start, "Labels v" + inf.version, C.n + " frames · 25 fps"].map((s) => `<span class="tag">${s}</span>`).join("");
+    $("meta").innerHTML = `<span><small>Clip</small><b>${inf.name}</b></span>` +
+      `<span><small>Teams</small><span class="teams"><i style="background:var(--left)"></i>Left <span class="muted">v</span> <i style="background:var(--right)"></i>Right</span></span>` +
+      `<span><small>Game clock</small><b>${inf.game_time_start}</b></span>` +
+      `<span><small>Action</small><b>${inf.action_class}</b></span>` +
+      `<span><small>Frames</small><b>${C.n} @ 25</b></span>`;
     $("fname").textContent = inf.name;
-    // open on player #14 crossing #19, the same moment as the demo video
     // open on a moment where someone has the ball and a prediction exists, as close as possible to 26.9 s
     let start = 672;
-    for (let d = 0; d < C.n; d++) { const hit = [672 - d, 672 + d].find((f) => f >= 0 && f < C.n && carrier[f] != null && fcFor(carrier[f], f));
+    for (let d = 0; d < C.n; d++) { const hit = [672 - d, 672 + d].find((f) => f >= 0 && f < C.n && carrier[f] != null && (A ? A.frames[f] : fcFor(carrier[f], f)));
       if (hit !== undefined) { start = hit; break; } }
     S.sel = C.tracks[3] ? 3 : order[0]; S.f = start; pickWindow(true);
     S._drawn = false; setFrame(start);

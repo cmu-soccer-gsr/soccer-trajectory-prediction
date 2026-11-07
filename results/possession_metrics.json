@@ -1,0 +1,150 @@
+{
+  "split": {
+    "train": [
+      "1874553",
+      "1899585",
+      "1925299",
+      "1927964",
+      "1953632",
+      "1959846",
+      "1986691",
+      "1996435",
+      "2006229",
+      "2006363",
+      "2007448",
+      "2007721",
+      "2013725",
+      "2017461"
+    ],
+    "valid": [
+      "2010085",
+      "2015213",
+      "2016236"
+    ],
+    "test": [
+      "1886347",
+      "1996436",
+      "2011166"
+    ]
+  },
+  "valid": {
+    "frames": 44835,
+    "possessions": 957,
+    "outcome": {
+      "balanced_accuracy": 0.7682485693527198,
+      "recall": {
+        "pass": 0.841186423297785,
+        "loss": 0.5108447488584474,
+        "shot": 0.9527145359019265
+      },
+      "auc": {
+        "pass": 0.8462973734192318,
+        "loss": 0.8345127582916744,
+        "shot": 0.9844028885119469
+      },
+      "always_pass_accuracy": 0.8700345712055314,
+      "accuracy": 0.8038808966209434
+    },
+    "release_within_1s_auc": 0.7658354768523039,
+    "receiver": {
+      "all_frames": {
+        "n": 39008,
+        "top1": 0.49025840853158326,
+        "top3": 0.8024507793273175,
+        "nearest_teammate_top1": 0.20898277276456112,
+        "random_top1": 0.1,
+        "skillcorner_option_n": 37946,
+        "skillcorner_option_top1": 0.5781637063195066,
+        "model_top1_same_frames": 0.4888789332208929
+      },
+      "possession_start": {
+        "n": 2335,
+        "top1": 0.4929336188436831,
+        "top3": 0.7918629550321199,
+        "nearest_teammate_top1": 0.2171306209850107,
+        "random_top1": 0.09999999999999999,
+        "skillcorner_option_n": 2194,
+        "skillcorner_option_top1": 0.6340018231540565,
+        "model_top1_same_frames": 0.4990884229717411
+      },
+      "release_frame": {
+        "n": 2359,
+        "top1": 0.7363289529461636,
+        "top3": 0.9364137346333192,
+        "nearest_teammate_top1": 0.2390843577787198,
+        "random_top1": 0.09999999999999999,
+        "skillcorner_option_n": 2218,
+        "skillcorner_option_top1": 0.633453561767358,
+        "model_top1_same_frames": 0.7547339945897205
+      }
+    },
+    "pass_arrives": {
+      "n": 2359,
+      "completion_rate": 0.8177193726155151,
+      "model_auc": 0.8881996937803658,
+      "n_with_skillcorner_xpass": 2218,
+      "model_auc_same_passes": 0.896345963927439,
+      "skillcorner_xpass_auc": 0.9096715748516778
+    }
+  },
+  "test": {
+    "frames": 41235,
+    "possessions": 981,
+    "outcome": {
+      "balanced_accuracy": 0.7119100034487079,
+      "recall": {
+        "pass": 0.783123695639912,
+        "loss": 0.5912794538647875,
+        "shot": 0.761326860841424
+      },
+      "auc": {
+        "pass": 0.8411214952586659,
+        "loss": 0.8265115183239852,
+        "shot": 0.9290818738915075
+      },
+      "always_pass_accuracy": 0.8599005699042076,
+      "accuracy": 0.7613435188553414
+    },
+    "release_within_1s_auc": 0.717186968111939,
+    "receiver": {
+      "all_frames": {
+        "n": 35458,
+        "top1": 0.4823735123244402,
+        "top3": 0.7902024930904168,
+        "nearest_teammate_top1": 0.20847199503638106,
+        "random_top1": 0.09999999999999998,
+        "skillcorner_option_n": 34161,
+        "skillcorner_option_top1": 0.587746260355376,
+        "model_top1_same_frames": 0.4801674424050818
+      },
+      "possession_start": {
+        "n": 2084,
+        "top1": 0.4851247600767754,
+        "top3": 0.7941458733205374,
+        "nearest_teammate_top1": 0.23224568138195778,
+        "random_top1": 0.1,
+        "skillcorner_option_n": 1948,
+        "skillcorner_option_top1": 0.6360369609856262,
+        "model_top1_same_frames": 0.4938398357289528
+      },
+      "release_frame": {
+        "n": 2109,
+        "top1": 0.7226173541963016,
+        "top3": 0.9345661450924608,
+        "nearest_teammate_top1": 0.2655286865813182,
+        "random_top1": 0.09999999999999999,
+        "skillcorner_option_n": 1973,
+        "skillcorner_option_top1": 0.6365940192600101,
+        "model_top1_same_frames": 0.742524075012671
+      }
+    },
+    "pass_arrives": {
+      "n": 2109,
+      "completion_rate": 0.822664770033191,
+      "model_auc": 0.8730031284193006,
+      "n_with_skillcorner_xpass": 1972,
+      "model_auc_same_passes": 0.8799284419650213,
+      "skillcorner_xpass_auc": 0.8788152515908324
+    }
+  }
+}
