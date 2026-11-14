@@ -11,7 +11,7 @@
   --bg: #f6f7f8; --surface: #ffffff; --surface-2: #e9edf0; --ink: #15191d; --muted: #59626b; --line: #d3d9df;
   --accent: #15191d; --accent-ink: #ffffff;
   --left: #1d5bbf; --right: #cc3626;
-  --b-ok: #17895a; --b-null: #1d5bbf; --b-out: #b06f00; --b-never: #7b4fc4; --bar: 29, 91, 191;
+  --b-ok: #17895a; --b-null: #1d5bbf; --b-out: #b06f00; --b-never: #7b4fc4; --bar: 29, 91, 191; --kosh: #b06f00;
   --display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
   --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
   --mono: "Overpass Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -19,12 +19,12 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #131917; --surface: #19211e; --surface-2: #232d29; --ink: #edf0ea; --muted: #9ea8a2; --line: #2f3a35;
   --accent: #edf0ea; --accent-ink: #131917; --left: #6fa3f2; --right: #f2806b;
-  --b-ok: #2fa874; --b-null: #4f8be0; --b-out: #b8890f; --b-never: #9a76e0; --bar: 111, 163, 242;
+  --b-ok: #2fa874; --b-null: #4f8be0; --b-out: #b8890f; --b-never: #9a76e0; --bar: 111, 163, 242; --kosh: #b8890f;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #131917; --surface: #19211e; --surface-2: #232d29; --ink: #edf0ea; --muted: #9ea8a2; --line: #2f3a35;
   --accent: #edf0ea; --accent-ink: #131917; --left: #6fa3f2; --right: #f2806b;
-  --b-ok: #2fa874; --b-null: #4f8be0; --b-out: #b8890f; --b-never: #9a76e0; --bar: 111, 163, 242;
+  --b-ok: #2fa874; --b-null: #4f8be0; --b-out: #b8890f; --b-never: #9a76e0; --bar: 111, 163, 242; --kosh: #b8890f;
   color-scheme: dark; }
 
 * { box-sizing: border-box; }
@@ -89,8 +89,16 @@ button:focus-visible { outline: 2px solid var(--left); outline-offset: 2px; }
 .fix div { padding: 12px 16px 12px 0; display: grid; gap: 6px; align-content: start; }
 .fix div + div { padding-left: 16px; border-left: 1px solid var(--line); }
 .fix b { font-size: 16px; }
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 3px solid var(--ink); }
+.steps div { display: grid; gap: 4px; padding: 12px 16px 12px 0; align-content: start; }
+.steps div + div { padding-left: 16px; border-left: 1px solid var(--line); }
+.steps b { font-size: 16px; }
+.steps span { font-size: 14px; color: var(--muted); }
+.cmp { display: grid; gap: 10px; }
+.cmp .row { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: center; }
+.cmp .row > span { font-weight: 700; font-size: 15px; }
 footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
-@media (max-width: 980px) { .two, .fix { grid-template-columns: minmax(0, 1fr); } .fix div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); } }
+@media (max-width: 980px) { .steps { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .steps div:nth-child(3) { padding-left: 0; border-left: 0; } .cmp .row { grid-template-columns: 90px 1fr; } .two, .fix { grid-template-columns: minmax(0, 1fr); } .fix div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); } }
 @media (max-width: 520px) { .strip > span { padding: 4px 10px; } .grow { grid-template-columns: 110px auto; } }
 </style>
 
@@ -101,10 +109,10 @@ footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line)
       <h1>GSR Jersey Board</h1>
     </div>
     <div class="strip">
-      <span><small>Reader</small><b>MMOCR baseline</b></span>
-      <span><small>Tracklets right</small><b class="num" style="font-family:var(--display)">11.3%</b></span>
-      <span><small>GS-HOTA</small><b class="num" style="font-family:var(--display)">18.85</b></span>
-      <span><small>Validation clips</small><b>58</b></span>
+      <span><small>Best reader so far</small><b>Koshkina &amp; Elder</b></span>
+      <span><small>Tracklets right, 5 clips</small><b class="num" style="font-family:var(--display)">38.3%</b></span>
+      <span><small>GS-HOTA, 5 clips</small><b class="num" style="font-family:var(--display)">29.60</b></span>
+      <span><small>vs MMOCR</small><b class="num" style="font-family:var(--display)">+6.06</b></span>
     </div>
   </header>
 
@@ -126,8 +134,49 @@ footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line)
 
   <section>
     <div class="sec-head">
-      <h2>Where the reader fails</h2>
-      <p class="note">Every predicted tracklet matched to a ground-truth player whose number is labeled: 3,017 tracklets across the 58 clips.</p>
+      <h2>A better reader: Koshkina &amp; Elder</h2>
+      <p class="note">The released jersey pipeline of Koshkina &amp; Elder run on the cached baseline's own tracklets for 5 validation clips (SNGS-021 to 025). Their numbers replace MMOCR's in a copy of the state and nothing else changes, so the GS-HOTA difference comes from the reader alone.</p>
+    </div>
+    <div class="steps" aria-label="Koshkina and Elder pipeline">
+      <div><b>1 · Legibility</b><span>A classifier drops frames where the number cannot be read.</span></div>
+      <div><b>2 · Torso crop</b><span>ViTPose finds the shoulders and hips and crops the back or chest.</span></div>
+      <div><b>3 · Read</b><span>PARSeq, a scene-text recognizer, reads the digits in each crop.</span></div>
+      <div><b>4 · Vote</b><span>Reads are combined over the tracklet, weighted by confidence.</span></div>
+    </div>
+    <div class="two" style="margin-top:22px">
+      <div class="chart" id="cWorth5"><h3>GS-HOTA on the same 5 clips</h3><svg id="worth5" viewBox="0 0 640 190" role="img" aria-label="GS-HOTA on 5 clips with no jerseys, MMOCR, Koshkina and Elder, and oracle"></svg></div>
+      <div class="facts">
+        <div><b>+6.06</b><span>GS-HOTA over MMOCR on the 5 clips (23.54 to 29.60), from swapping only the reader.</span></div>
+        <div><b>79%</b><span>Share of the possible jersey gain it captures, against 46% for MMOCR on the same clips.</span></div>
+        <div><b>3.87</b><span>Points still open to the per-tracklet oracle (33.47).</span></div>
+        <div><b>+7.58</b><span>Gain in DetA (12.77 to 20.35). Association (AssA) barely moves, as expected when only numbers change.</span></div>
+      </div>
+    </div>
+    <div class="two" style="margin-top:26px">
+      <div>
+        <h3 style="margin-bottom:10px">Tracklets read right, same 209 tracklets</h3>
+        <div class="cmp" id="cmp"></div>
+        <div class="keys" id="cmpKeys" style="margin-top:10px"></div>
+        <p class="note" style="margin-top:10px">Tracklets matched to a ground-truth player with a labeled number. "Wrong" combines outvoted and never read, because that split relies on MMOCR's per-frame reads.</p>
+      </div>
+      <div class="tablewrap"><h3 style="margin-bottom:10px">Per clip</h3><table id="kosh5"></table></div>
+    </div>
+    <div class="two" style="margin-top:22px">
+      <div class="facts">
+        <div><b>67.3%</b><span>Accuracy weighted by tracklet length, against 29.8% for MMOCR. Long tracklets, which matter most for GS-HOTA, are now read right two times in three.</span></div>
+        <div><b>275</b><span>of 398 tracklets judged unreadable by the legibility step and left without a number; 123 got one.</span></div>
+      </div>
+      <div class="facts">
+        <div><b>50.7%</b><span>of labeled tracklets still get no number. The legibility filter and vote threshold decide this, so they are the next things to tune.</span></div>
+        <div><b>5 clips</b><span>Results so far cover SNGS-021 to 025 only. Running all 58 clips would make it comparable with the MMOCR numbers below.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Where MMOCR fails</h2>
+      <p class="note">The baseline reader on all 58 validation clips: every predicted tracklet matched to a ground-truth player whose number is labeled, 3,017 tracklets.</p>
     </div>
     <div class="stack" id="stack" role="img" aria-label="Breakdown of 3,017 tracklets by outcome"></div>
     <div class="keys" id="stackKeys" style="margin-top:10px"></div>
@@ -191,16 +240,16 @@ footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line)
   <section>
     <div class="sec-head">
       <h2>What would move the number</h2>
-      <p class="note">Each failure bucket points to a different fix, sized by how many tracklets it covers.</p>
+      <p class="note">Swapping the reader was the biggest lever, as the MMOCR breakdown suggested. What is left after Koshkina &amp; Elder:</p>
     </div>
     <div class="fix">
-      <div><b>A reader that finds the digits</b><span class="note">76% of scored tracklets get no number although one is labeled. Most of the gain is here: a stronger digit reader, or a step that first picks the frames where the back is visible.</span></div>
-      <div><b>Better crops and frame choice</b><span class="note">11% are read wrong in every frame. Small boxes, motion blur and partial digits (70 share a digit with the truth) suggest feeding larger, sharper crops.</span></div>
-      <div><b>Smarter voting across frames</b><span class="note">Only 2% had the right number in some frame and lost the vote, so a learned aggregation alone moves little until the reader improves.</span></div>
+      <div><b>Run all 58 clips</b><span class="note">The +6.06 comes from 5 clips. Scoring the full validation split makes it comparable with the 58-clip MMOCR numbers and shows whether the gain holds.</span></div>
+      <div><b>Tune what counts as readable</b><span class="note">Half of the labeled tracklets still end with no number. The legibility classifier and the vote threshold (left at their default of 1.0) decide this, and their ReID outlier filter was not switched on.</span></div>
+      <div><b>Adapt to these clips</b><span class="note">Numbers are about 14 px tall and often blurred. Fine-tuning the legibility or reading step on SoccerNet crops, or picking the sharpest frames first, targets the remaining misses.</span></div>
     </div>
   </section>
 
-  <footer>Numbers: midterm notebook (notebooks/gsr_baseline_colab_midterm.ipynb), SoccerNet's cached baseline state and our own run, SoccerNet GSR v1.3 validation split. Box heights and crops: ground-truth labels and frames of the validation split. Per-tracklet predictions will be added once exported from the notebook.</footer>
+  <footer>Numbers: midterm notebooks (notebooks/gsr_baseline_colab_midterm.ipynb for MMOCR, notebooks/gsr_baseline_colab_midterm_Koshkina.ipynb for Koshkina &amp; Elder), SoccerNet's cached baseline state and our own run, SoccerNet GSR v1.3 validation split. Koshkina &amp; Elder: <a href="https://github.com/mkoshkina/jersey-number-pipeline" style="color:inherit">their released pipeline</a>, run unmodified. Box heights and crops: ground-truth labels and frames of the validation split. Per-tracklet predictions will be added once exported from the notebook.</footer>
 </div>
 
 <script>
@@ -210,24 +259,41 @@ function tipAt(box, html, x, y) { let t = box.querySelector(".tip"); if (!t) { t
   if (html == null) { t.hidden = true; return; } t.hidden = false; t.innerHTML = html;
   t.style.left = Math.min(box.clientWidth - t.offsetWidth - 4, Math.max(0, x + 12)) + "px"; t.style.top = Math.max(0, y - 40) + "px"; }
 
-/* worth: number line */
-(function () {
-  const pts = [["No jersey numbers", 13.14, "--muted", 0], ["MMOCR baseline", 18.85, "--left", 1], ["Oracle per frame", 29.11, "--b-ok", 1], ["Oracle per tracklet", 29.31, "--b-ok", 0]];
-  const W = 640, L = 20, R = 20, X = (v) => L + (v - 10) / 22 * (W - L - R), y = 96;
-  let g = `<rect x="${X(13.14)}" y="${y - 9}" width="${X(18.85) - X(13.14)}" height="18" fill="var(--left)" opacity=".25"/>`;
-  g += `<rect x="${X(18.85)}" y="${y - 9}" width="${X(29.31) - X(18.85)}" height="18" fill="none" stroke="var(--b-ok)" stroke-dasharray="4 3" stroke-width="1.5"/>`;
+/* number lines */
+function numberLine(svgId, pts, lo, hi, base, top, gainLabel, openLabel, axis) {
+  const W = 640, L = 20, R = 20, X = (v) => L + (v - lo) / (hi - lo) * (W - L - R), y = 96;
+  let g = `<rect x="${X(pts[0][1])}" y="${y - 9}" width="${X(base) - X(pts[0][1])}" height="18" fill="var(--left)" opacity=".25"/>`;
+  g += `<rect x="${X(base)}" y="${y - 9}" width="${X(top) - X(base)}" height="18" fill="none" stroke="var(--b-ok)" stroke-dasharray="4 3" stroke-width="1.5"/>`;
   g += `<line x1="${L}" x2="${W - R}" y1="${y + 30}" y2="${y + 30}" stroke="var(--line)"/>`;
-  for (let v = 10; v <= 32; v += 2) g += `<line x1="${X(v)}" x2="${X(v)}" y1="${y + 26}" y2="${y + 34}" stroke="var(--line)"/>` + (v % 4 === 2 || v === 10 ? "" : "") + `<text x="${X(v)}" y="${y + 50}" text-anchor="middle" fill="var(--muted)" font-family="Overpass Mono, monospace" font-size="11">${v}</text>`;
-  g += `<text x="${W - R}" y="${y + 70}" text-anchor="end" fill="var(--muted)" font-family="Atkinson Hyperlegible, sans-serif" font-size="12">GS-HOTA, 58 validation clips</text>`;
+  for (let v = lo; v <= hi; v += 2) g += `<line x1="${X(v)}" x2="${X(v)}" y1="${y + 26}" y2="${y + 34}" stroke="var(--line)"/><text x="${X(v)}" y="${y + 50}" text-anchor="middle" fill="var(--muted)" font-family="Overpass Mono, monospace" font-size="11">${v}</text>`;
+  g += `<text x="${W - R}" y="${y + 70}" text-anchor="end" fill="var(--muted)" font-family="Atkinson Hyperlegible, sans-serif" font-size="12">${axis}</text>`;
   for (const [name, v, c, up] of pts) { const x = X(v);
     g += `<circle cx="${x}" cy="${y}" r="7" fill="var(${c})" stroke="var(--bg)" stroke-width="2"/>`;
     const ty = up ? y - 22 : y - 44, anchor = v > 28 ? "end" : "middle", dx = v > 28 ? 8 : 0;
     g += `<line x1="${x}" x2="${x}" y1="${y - 9}" y2="${ty + 6}" stroke="var(--line)"/>`;
     g += `<text x="${x + dx}" y="${ty}" text-anchor="${anchor}" fill="var(--ink)" font-family="Atkinson Hyperlegible, sans-serif" font-size="13" font-weight="700">${name}</text>`;
     g += `<text x="${x + dx}" y="${ty - 16}" text-anchor="${anchor}" fill="var(--muted)" font-family="Overpass Mono, monospace" font-size="12">${v.toFixed(2)}</text>`; }
-  g += `<text x="${(X(13.14) + X(18.85)) / 2}" y="${y + 4}" text-anchor="middle" fill="var(--ink)" font-family="Overpass Mono, monospace" font-size="11" font-weight="600">+5.71</text>`;
-  g += `<text x="${(X(18.85) + X(29.31)) / 2}" y="${y + 4}" text-anchor="middle" fill="var(--ink)" font-family="Overpass Mono, monospace" font-size="11" font-weight="600">+10.46 still open</text>`;
-  $("worth").innerHTML = g;
+  g += `<text x="${(X(pts[0][1]) + X(base)) / 2}" y="${y + 4}" text-anchor="middle" fill="var(--ink)" font-family="Overpass Mono, monospace" font-size="11" font-weight="600">${gainLabel}</text>`;
+  g += `<text x="${(X(base) + X(top)) / 2}" y="${y + 4}" text-anchor="middle" fill="var(--ink)" font-family="Overpass Mono, monospace" font-size="11" font-weight="600">${openLabel}</text>`;
+  $(svgId).innerHTML = g;
+}
+numberLine("worth", [["No jersey numbers", 13.14, "--muted", 0], ["MMOCR baseline", 18.85, "--left", 1], ["Oracle per frame", 29.11, "--b-ok", 1], ["Oracle per tracklet", 29.31, "--b-ok", 0]],
+  10, 32, 18.85, 29.31, "+5.71", "+10.46 still open", "GS-HOTA, 58 validation clips");
+numberLine("worth5", [["No jersey numbers", 15.15, "--muted", 0], ["MMOCR", 23.54, "--left", 1], ["Koshkina & Elder", 29.60, "--kosh", 0], ["Oracle", 33.47, "--b-ok", 1]],
+  14, 36, 29.60, 33.47, "+14.45", "+3.87", "GS-HOTA, SNGS-021 to 025");
+
+/* MMOCR vs Koshkina on the same tracklets */
+(function () {
+  const parts = [["Right", "--b-ok"], ["No number", "--b-null"], ["Wrong", "--b-never"]];
+  const rows = [["MMOCR", [29, 156, 24]], ["Koshkina & Elder", [80, 106, 23]]];
+  $("cmp").innerHTML = rows.map(([name, v]) => { const n = v.reduce((a, b) => a + b, 0);
+    return `<div class="row"><span>${name}</span><div class="stack">${v.map((x, i) => { const f = x / n; return `<i style="width:${(f * 100).toFixed(2)}%;background:var(${parts[i][1]})" title="${parts[i][0]}: ${x} of ${n} (${(f * 100).toFixed(1)}%)">${f > .09 ? `<span>${(f * 100).toFixed(1)}%</span>` : ""}</i>`; }).join("")}</div></div>`; }).join("");
+  $("cmpKeys").innerHTML = parts.map(([l, c]) => `<span><i class="sw" style="background:var(${c})"></i>${l}</span>`).join("");
+  const clips = [["SNGS-021", 24.12, 24.17, 24.08, 32.62], ["SNGS-022", 8.60, 10.31, 17.77, 18.04], ["SNGS-023", 10.54, 25.07, 32.05, 36.93], ["SNGS-024", 10.11, 11.87, 15.46, 16.31], ["SNGS-025", 15.51, 33.82, 45.99, 49.58]];
+  const all = ["All 5 (combined)", 15.15, 23.54, 29.60, 33.47];
+  const row = (r, bold) => `<tr><td>${bold ? "<b>" + r[0] + "</b>" : r[0]}</td>${r.slice(1).map((v, i) => `<td class="r num" style="${i === 2 ? "font-weight:700" : ""}">${v.toFixed(2)}</td>`).join("")}<td class="r num">${(r[3] - r[2] >= 0 ? "+" : "") + (r[3] - r[2]).toFixed(2)}</td></tr>`;
+  $("kosh5").innerHTML = `<thead><tr><th>Clip</th><th class="r">No jersey</th><th class="r">MMOCR</th><th class="r">Koshkina</th><th class="r">Oracle</th><th class="r">vs MMOCR</th></tr></thead><tbody>` +
+    clips.map((r) => row(r)).join("") + row(all, true) + "</tbody>";
 })();
 
 /* buckets */
