@@ -58,8 +58,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--processed-dir", required=True, type=Path)
     ap.add_argument("--out-dir", default="results", type=Path)
-    ap.add_argument("--noise", nargs="+", type=float, default=[0.0, 0.25],
-                    help="Std (m) of Gaussian noise on observed context frames")
+    ap.add_argument("--noise", nargs="+", type=str, default=["0", "0.25"],
+                    help="Context noise: a float (iid Gaussian std, m) or a spec from "
+                         "imputation.noise such as pipeline or pipeline:0.5")
     ap.add_argument("--tune-windows", type=int, default=20000)
     args = ap.parse_args()
     pdir, out = args.processed_dir.expanduser(), args.out_dir
@@ -77,7 +78,8 @@ def main():
         tw = tw[rng.choice(len(tw), args.tune_windows, replace=False)]
 
     params, rows, raw = {}, [], {}
-    for sigma in args.noise:
+    specs = [float(x) if x.replace(".", "", 1).isdigit() else x for x in args.noise]
+    for sigma in specs:
         p = tune(tw, sigma)
         params[str(sigma)] = p
         print(f"[tune sigma={sigma}] {p}")
@@ -98,6 +100,7 @@ def main():
     if mpath.exists():  # keep rows from other methods (e.g. gru)
         old = pd.read_csv(mpath)
         df = pd.concat([old[~old["method"].isin(df["method"].unique())], df])
+    df["noise_m"] = df["noise_m"].astype(str)
     df.to_csv(mpath, index=False)
     np.savez_compressed(out / "per_window_ade.npz", **raw)
 
