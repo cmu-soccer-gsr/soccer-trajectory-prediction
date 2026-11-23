@@ -27,12 +27,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from imputation.data import GAP_LENGTHS, WINDOW, load_runs, make_windows  # noqa: E402
 from imputation.evaluate import evaluate  # noqa: E402
 from imputation.gru import GRUImputer, linear_fill, predict_numpy  # noqa: E402
+from imputation.noise import sample_torch  # noqa: E402
 
 SPLIT_SEED = {"train": 0, "valid": 1, "test": 2}
 MIN_CONTEXT = 5
 
 
-def sample_batch(W: torch.Tensor, max_noise: float, gen: torch.Generator):
+def sample_batch(W: torch.Tensor, max_noise: float, gen: torch.Generator, train_noise: str = "gauss"):
     B, T, _ = W.shape
     L = torch.randint(1, max(GAP_LENGTHS) + 1, (B,), generator=gen)
     hi = T - MIN_CONTEXT - L  # exclusive upper bound for start
@@ -40,7 +41,13 @@ def sample_batch(W: torch.Tensor, max_noise: float, gen: torch.Generator):
     flip = torch.where(torch.rand(B, 2, generator=gen) < 0.5, -1.0, 1.0)[:, None, :]
     gt = W * flip
     sigma = torch.rand(B, 1, 1, generator=gen) * max_noise
-    noisy = gt + sigma * torch.randn(gt.shape, generator=gen)
+    noise = sigma * torch.randn(gt.shape, generator=gen)
+    if train_noise in ("pipeline", "mix"):
+        # measured pipeline noise at a random scale in [0, 1.5]
+        pn = sample_torch(gt.shape, torch.rand(B, 1, 1, generator=gen) * 1.5, gen)
+        use = torch.ones(B, 1, 1, dtype=torch.bool) if train_noise == "pipeline" else torch.rand(B, 1, 1, generator=gen) < 0.5
+        noise = torch.where(use, pn, noise)
+    noisy = gt + noise
     filled, hidden = linear_fill(noisy, start, L)
     return filled, hidden, gt
 
@@ -54,9 +61,14 @@ def main():
     ap.add_argument("--lr", type=float, default=2e-3)
     ap.add_argument("--hidden", type=int, default=64)
     ap.add_argument("--max-noise", type=float, default=0.4)
-    ap.add_argument("--eval-noise", nargs="+", type=float, default=[0.0, 0.25])
+    ap.add_argument("--eval-noise", nargs="+", type=str, default=["0", "0.25"],
+                    help="floats (iid Gaussian std) or imputation.noise specs such as pipeline:0.5")
+    ap.add_argument("--train-noise", choices=["gauss", "pipeline", "mix"], default="gauss")
+    ap.add_argument("--ckpt", type=Path, help="evaluate this checkpoint instead of training")
+    ap.add_argument("--name", default="gru", help="method name in metrics.csv and checkpoint stem")
     ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
+    args.eval_noise = [float(x) if x.replace(".", "", 1).isdigit() else x for x in args.eval_noise]
     torch.manual_seed(args.seed)
     pdir, out = args.processed_dir.expanduser(), args.out_dir
     out.mkdir(parents=True, exist_ok=True)
@@ -79,7 +91,11 @@ def main():
                 for s in args.eval_noise}
 
     log, best = [], (np.inf, None)
-    v0 = val_score("valid")  # epoch 0 == linear baseline (zero-initialised output)
+    if args.ckpt:
+        model.load_state_dict(torch.load(args.ckpt)["state_dict"])
+        torch.save({"state_dict": model.state_dict(), "hidden": args.hidden}, out / f"{args.name}.pt")
+        args.epochs = -1
+    v0 = val_score("valid") if not args.ckpt else {}  # epoch 0 == linear baseline (zero-initialised output)
     log.append({"epoch": 0, "train_loss": np.nan, **{f"val_ade_noise{s}": v for s, v in v0.items()}})
     print(f"epoch 0 (= linear) val ADE {v0}")
     for ep in range(1, args.epochs + 1):
@@ -87,7 +103,8 @@ def main():
         t0, losses = time.time(), []
         perm = torch.randperm(len(Wt), generator=gen)
         for i in range(steps_per_epoch):
-            filled, hidden, gt = sample_batch(Wt[perm[i * args.batch:(i + 1) * args.batch]], args.max_noise, gen)
+            filled, hidden, gt = sample_batch(Wt[perm[i * args.batch:(i + 1) * args.batch]], args.max_noise, gen,
+                                               args.train_noise)
             pred = model(filled, hidden)
             loss = F.smooth_l1_loss(pred[hidden], gt[hidden], beta=0.05)
             opt.zero_grad()
@@ -102,30 +119,32 @@ def main():
         score = float(np.mean(list(v.values())))
         if score < best[0]:
             best = (score, ep)
-            torch.save({"state_dict": model.state_dict(), "hidden": args.hidden}, out / "gru.pt")
+            torch.save({"state_dict": model.state_dict(), "hidden": args.hidden}, out / f"{args.name}.pt")
         print(f"epoch {ep:2d} loss {np.mean(losses):.4f} val ADE {v} ({time.time() - t0:.0f}s)")
 
-    pd.DataFrame(log).to_csv(out / "gru_loss.csv", index=False)
+    if not args.ckpt:
+        pd.DataFrame(log).to_csv(out / f"{args.name}_loss.csv", index=False)
     print(f"best epoch {best[1]} (mean val ADE {best[0]:.4f} m)")
 
     # final evaluation with the best checkpoint
-    model.load_state_dict(torch.load(out / "gru.pt")["state_dict"])
+    model.load_state_dict(torch.load(out / f"{args.name}.pt")["state_dict"])
     f = lambda Y, m: predict_numpy(model, Y, m)
     rows, raw = [], {}
     for sigma in args.eval_noise:
         for split in ["valid", "test"]:
             for r in evaluate(f, evalw[split], sigma, SPLIT_SEED[split]):
-                raw[f"{split}|{sigma}|gru|{r['gap_frames']}"] = r.pop("_per_window")
-                rows.append({"split": split, "noise_m": sigma, "method": "gru", **r})
+                raw[f"{split}|{sigma}|{args.name}|{r['gap_frames']}"] = r.pop("_per_window")
+                rows.append({"split": split, "noise_m": sigma, "method": args.name, **r})
     mpath, npath = out / "metrics.csv", out / "per_window_ade.npz"
     df = pd.DataFrame(rows)
     if mpath.exists():
         old = pd.read_csv(mpath)
-        df = pd.concat([old[old["method"] != "gru"], df])
+        df = pd.concat([old[old["method"] != args.name], df])
+    df["noise_m"] = df["noise_m"].astype(str)
     df.to_csv(mpath, index=False)
     if npath.exists():
         prev = dict(np.load(npath))
-        prev = {k: v for k, v in prev.items() if "|gru|" not in k}
+        prev = {k: v for k, v in prev.items() if f"|{args.name}|" not in k}
         raw = {**prev, **raw}
     np.savez_compressed(npath, **raw)
     view = df[df.split == "test"].pivot_table(index=["noise_m", "method"], columns="gap_frames", values="ade_m")
