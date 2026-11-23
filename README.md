@@ -19,6 +19,7 @@ configs/        experiment configs (yaml)
 data/           datasets (not tracked; see Data section)
 docs/           proposal, reports, figures
 explorer/       GSR Clip Explorer: one GSR clip with video, imputation and pass/dribble predictions
+jersey/         Jersey Board: where the jersey reader fails and what fixing it is worth
 live/           Live Board: possession model running on a replayed tracking feed
 notebooks/      exploration and analysis
 results/        metrics and logs (checkpoints are not tracked)
@@ -66,6 +67,43 @@ git lfs pull
 
 Without `git lfs` the tracking files come down as 133-byte pointer files.
 
+## Jersey number recognition
+
+GS-HOTA when only the jersey numbers in the pipeline output change. "Correct per tracklet" gives each predicted tracklet the number of the labeled player it is matched to most often, the ceiling for any reader that outputs one number per tracklet.
+
+58 validation clips, released baseline output:
+
+| Jersey numbers | GS-HOTA | DetA | AssA |
+|---|---|---|---|
+| None (floor) | 13.14 | 4.30 | 40.30 |
+| MMOCR (baseline) | 18.85 | 7.95 | 44.73 |
+| Correct per tracklet | 29.31 | 20.38 | 42.18 |
+
+MMOCR reads the correct number for 11.3% of the 3,017 tracklets whose player has a labeled number; for 76% it reads no number at all.
+
+5 validation clips (SNGS-021 to 025), Koshkina and Elder reader (legibility classifier, ViTPose torso crop, PARSeq) in place of MMOCR:
+
+| Jersey numbers | GS-HOTA | DetA | AssA | Tracklet accuracy | Share of possible gain |
+|---|---|---|---|---|---|
+| None | 15.15 | 6.68 | 34.39 | | |
+| MMOCR | 23.54 | 12.77 | 43.45 | 13.9% | 46% |
+| Koshkina and Elder | 29.60 | 20.35 | 43.16 | 38.3% | 79% |
+| Correct per tracklet | 33.47 | 28.34 | 39.64 | | |
+
+The Koshkina pipeline code (`src/jersey/koshkina_bridge.py`, `src/jersey/run_koshkina.py`) is on the `koshkina` branch and the run is in `notebooks/gsr_baseline_colab_midterm_Koshkina.ipynb`. The Jersey Board (`jersey/`) shows both analyses; see [jersey/README.md](jersey/README.md).
+
+## Trajectory imputation
+
+Fills gaps of up to 1 s inside on-screen player tracks (linear, cubic P-spline, Kalman smoother and a bidirectional GRU). The benchmark first used i.i.d. Gaussian context noise (σ = 0.25 m), where the GRU had 10% lower error than Kalman. We then measured the real noise of the GSR pipeline against the labels on 58 valid clips:
+
+- 24% of frames are calibration failures (median player error 17 m), mostly in bursts longer than 1 s.
+- On the other frames the median error is 0.72 m, correlated in time, with a +0.3 m bias in y.
+- In the pipeline's own tracks, 95.5% of gaps are 1 s or shorter, and the track ID changes 4.8 times per labeled player.
+
+With the measured noise (test, mean ADE over 0.2 to 1 s gaps): Kalman 0.771 m, the original GRU 0.782 m, a GRU retrained on measured noise 0.700 m, and a Kalman with the mean bias removed 0.715 m. Most of the retrained GRU's gain is bias correction.
+
+Protocol, commands and full tables: [docs/imputation.md](docs/imputation.md). Measurement: `scripts/measure_pipeline_noise.py`, `results/pipeline_noise/`; re-run: `results/pipeline_eval/`.
+
 ## Possession model
 
 ```bash
@@ -101,6 +139,10 @@ python scripts/live_demo.py --match-dir ~/data/skillcorner/data/matches/2011166 
 ```
 
 Without the server, `live/replay.json` holds an 8-minute recording of the same match (made with `--record`); serve the folder with `python -m http.server` to watch it. See [live/README.md](live/README.md).
+
+### Jersey Board (`jersey/`)
+
+What correct jersey numbers are worth in GS-HOTA, where MMOCR fails (with player crops at real pixel size) and the Koshkina and Elder results on 5 clips. Static page: serve the folder with `python -m http.server`. See [jersey/README.md](jersey/README.md).
 
 ### GSR Clip Explorer (`explorer/`)
 
